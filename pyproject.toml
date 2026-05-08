@@ -8,7 +8,9 @@ license = { text = "MIT" }
 authors = [
     { name = "Adam Wermus", email = "amwermus@gmail.com" }
 ]
-dependencies = []
+dependencies = [
+    "requests>=2.33.1",
+]
 
 [build-system]
 requires = ["hatchling"]
