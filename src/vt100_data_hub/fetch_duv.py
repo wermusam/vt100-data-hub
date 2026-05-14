@@ -32,7 +32,9 @@ class DUVFetcher:
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update(
-            {"User-Agent": "vt100-data-hub/0.1.0 (research; contact: amwermus@gmail.com)"}
+            {
+                "User-Agent": "vt100-data-hub/0.1.0 (research; contact: amwermus@gmail.com)"
+            }
         )
 
     def fetch_event(self, event_id: int) -> str:
@@ -50,7 +52,9 @@ class DUVFetcher:
         params = {"event": event_id}
         logger.info("Fetching DUV event %s", event_id)
         try:
-            response = self.session.get(self.base_url, params=params, timeout=self.timeout)
+            response = self.session.get(
+                self.base_url, params=params, timeout=self.timeout
+            )
             response.raise_for_status()
         except requests.RequestException as exc:
             raise DUVFetchError(f"Failed to fetch event {event_id}") from exc
