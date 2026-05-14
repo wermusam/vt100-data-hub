@@ -29,6 +29,7 @@ class DUVEventRegistry:
     """
 
     DEFAULT_EVENT_IDS: dict[tuple[int, Distance], int] = {
+        # 100-mile event IDs
         (2015, "100M"): 25502,
         (2016, "100M"): 28015,
         (2017, "100M"): 35857,
@@ -37,6 +38,15 @@ class DUVEventRegistry:
         (2022, "100M"): 82819,
         (2024, "100M"): 110321,
         (2025, "100M"): 113387,
+        # 100-km event IDs (sourced from DUV master page event=125333)
+        (2015, "100K"): 25503,
+        (2016, "100K"): 28016,
+        (2017, "100K"): 35858,
+        (2018, "100K"): 49458,
+        (2019, "100K"): 58262,
+        (2022, "100K"): 82820,
+        (2024, "100K"): 110320,
+        (2025, "100K"): 115430,
     }
 
     def __init__(

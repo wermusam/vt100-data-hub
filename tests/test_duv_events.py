@@ -19,6 +19,21 @@ class TestGetEventID:
         registry = DUVEventRegistry()
         assert registry.get_event_id(2025, "100M") == 113387
 
+    def test_returns_known_event_id_for_2024_100k(self) -> None:
+        """2024 100K should resolve to DUV event 110320."""
+        registry = DUVEventRegistry()
+        assert registry.get_event_id(2024, "100K") == 110320
+
+    def test_returns_known_event_id_for_2025_100k(self) -> None:
+        """2025 100K should resolve to DUV event 115430."""
+        registry = DUVEventRegistry()
+        assert registry.get_event_id(2025, "100K") == 115430
+
+    def test_100m_and_100k_have_different_ids_for_same_year(self) -> None:
+        """100M and 100K are separate races with separate DUV event IDs."""
+        registry = DUVEventRegistry()
+        assert registry.get_event_id(2024, "100M") != registry.get_event_id(2024, "100K")
+
     def test_defaults_to_100m_when_distance_omitted(self) -> None:
         """Omitting distance should default to the 100-mile race."""
         registry = DUVEventRegistry()
@@ -46,10 +61,16 @@ class TestGetEventID:
 class TestAvailableEditions:
     """Tests for DUVEventRegistry.available_editions."""
 
-    def test_returns_eight_editions(self) -> None:
-        """The default registry should expose exactly eight 100M editions."""
+    def test_returns_sixteen_editions(self) -> None:
+            """The default registry should expose sixteen editions (8 years x 2 distances)."""
+            registry = DUVEventRegistry()
+            assert len(registry.available_editions()) == 16
+
+    def test_returns_eight_editions_per_distance(self) -> None:
+        """Each distance should have exactly eight editions."""
         registry = DUVEventRegistry()
-        assert len(registry.available_editions()) == 8
+        assert len(registry.available_editions(distance="100M")) == 8
+        assert len(registry.available_editions(distance="100K")) == 8
 
     def test_returns_sorted_oldest_first(self) -> None:
         """Editions should be sorted oldest first."""
@@ -87,6 +108,15 @@ class TestLastNEditions:
             (2022, "100M"),
             (2024, "100M"),
             (2025, "100M"),
+        ]
+
+    def test_returns_most_recent_three_100k_in_order(self) -> None:
+        """Last 3 100K editions should be 2022, 2024, 2025 in that order."""
+        registry = DUVEventRegistry()
+        assert registry.last_n_editions(3, "100K") == [
+            (2022, "100K"),
+            (2024, "100K"),
+            (2025, "100K"),
         ]
 
     def test_raises_for_zero(self) -> None:
