@@ -6,7 +6,7 @@ import logging
 import time
 
 from vt100_data_hub.duv_events import Distance, DUVEventRegistry
-from vt100_data_hub.fetch_duv import DUVFetcher
+from vt100_data_hub.duv import DUVFetcher
 
 logger = logging.getLogger(__name__)
 
