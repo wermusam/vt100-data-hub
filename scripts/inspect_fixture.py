@@ -1,37 +1,36 @@
-"""One-off script to inspect the structure of the DUV 2024 100M fixture."""
+"""One-off script to inspect the structure of a DUV fixture file."""
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-FIXTURE_PATH = Path("tests/fixtures/duv_2024_100m.html")
 
-def show_first_finisher_row() -> None:
-    """Print the second row of Table 5 (first row after the header)."""
-    html = FIXTURE_PATH.read_text(encoding="utf-8")
-    soup = BeautifulSoup(html, "html.parser")
-    results_table = soup.find_all("table")[5]
-    rows = results_table.find_all("tr")
-    print("HEADER ROW:")
-    print(rows[0])
-    print()
-    print("FIRST FINISHER ROW:")
-    print(rows[1])
+def inspect_fixture(fixture_path: Path) -> None:
+    """Print the number of rows in each table of a DUV fixture.
 
-
-def main() -> None:
-    """Print the number of rows in each table, then inspect the results table."""
-    html = FIXTURE_PATH.read_text(encoding="utf-8")
+    Args:
+        fixture_path: Path to a saved DUV HTML fixture.
+    """
+    html = fixture_path.read_text(encoding="utf-8")
     soup = BeautifulSoup(html, "html.parser")
     tables = soup.find_all("table")
+    print(f"Fixture: {fixture_path.name}")
     print(f"Total tables: {len(tables)}")
     for i, table in enumerate(tables):
         rows = table.find_all("tr")
         print(f"Table {i}: {len(rows)} rows")
-    print()
-    show_first_finisher_row()
+
+
+def main() -> None:
+    """Inspect a fixture file passed as a command-line argument."""
+    if len(sys.argv) < 2:
+        fixture_path = Path("tests/fixtures/duv_2024_100m.html")
+    else:
+        fixture_path = Path(sys.argv[1])
+    inspect_fixture(fixture_path)
 
 
 if __name__ == "__main__":

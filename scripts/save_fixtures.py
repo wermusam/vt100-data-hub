@@ -73,13 +73,14 @@ class FixtureSaver:
 
 
 def main() -> None:
-    """Save the 2024 100M fixture as our starting test data."""
+    """Save the 2024 100M and 2017 100M fixtures as test data."""
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     saver = FixtureSaver(
         fetcher=DUVFetcher(),
         registry=DUVEventRegistry(),
     )
     saver.save_one(year=2024, distance="100M")
+    saver.save_one(year=2017, distance="100M")
 
 
 if __name__ == "__main__":
