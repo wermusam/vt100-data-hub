@@ -9,6 +9,7 @@ authors = [
     { name = "Adam Wermus", email = "amwermus@gmail.com" }
 ]
 dependencies = [
+    "beautifulsoup4>=4.14.3",
     "requests>=2.33.1",
 ]
 
