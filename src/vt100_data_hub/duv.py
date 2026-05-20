@@ -77,6 +77,36 @@ class DUVParser:
     locates and walks.
     """
 
+    def parse_all_finishers(self, html: str, year: int, distance: Distance) -> list[RaceResult]:
+        """Parse every finisher row from a DUV event page.
+
+        Walks every row of the results table except the header row and
+        returns one RaceResult per finisher.
+
+        Args:
+            html: The full HTML body of a DUV event-result page.
+            year: The race year, used to tag each RaceResult.
+            distance: The race distance, used to tag each RaceResult.
+
+        Returns:
+            A list of RaceResult objects, one per finisher row, in the
+            order DUV returned them.
+
+        Raises:
+            DUVParseError: If the results table cannot be located.
+        """
+        soup = BeautifulSoup(html, "html.parser")
+        tables = soup.find_all("table")
+        results_table = self._find_results_table(tables)
+        rows = results_table.find_all("tr")
+        finishers: list[RaceResult] = []
+        for row in rows[1:]:
+            try:
+                finishers.append(self._parse_finisher_row(row, year, distance))
+            except DUVParseError as exc:
+                logger.warning("Skipping unparseable row: %s", exc)
+        return finishers
+
     def parse_first_finisher(self, html: str, year: int, distance: Distance) -> RaceResult:
         """Parse just the rank-1 finisher row from a DUV event page.
 
