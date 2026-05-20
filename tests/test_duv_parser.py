@@ -7,7 +7,8 @@ from pathlib import Path
 
 from vt100_data_hub.duv import DUVParser
 
-FIXTURE_PATH = Path(__file__).parent / "fixtures" / "duv_2024_100m.html"
+FIXTURE_2024_PATH = Path(__file__).parent / "fixtures" / "duv_2024_100m.html"
+FIXTURE_2017_PATH = Path(__file__).parent / "fixtures" / "duv_2017_100m.html"
 
 
 class TestParseFirstFinisher:
@@ -15,7 +16,7 @@ class TestParseFirstFinisher:
 
     def _load_fixture(self) -> str:
         """Read the saved 2024 100M HTML fixture."""
-        return FIXTURE_PATH.read_text(encoding="utf-8")
+        return FIXTURE_2024_PATH.read_text(encoding="utf-8")
 
     def test_extracts_runner_name(self) -> None:
         """Rank-1 row should yield Sarah Gage."""
@@ -83,7 +84,7 @@ class TestParseAllFinishers:
 
     def _load_fixture(self) -> str:
         """Read the saved 2024 100M HTML fixture."""
-        return FIXTURE_PATH.read_text(encoding="utf-8")
+        return FIXTURE_2024_PATH.read_text(encoding="utf-8")
 
     def test_returns_a_list(self) -> None:
         """Parsing should return a list."""
@@ -130,3 +131,42 @@ class TestParseAllFinishers:
         parser = DUVParser()
         results = parser.parse_all_finishers(self._load_fixture(), year=2024, distance="100M")
         assert all(r.status == "FINISH" for r in results)
+
+
+
+class TestParseAllFinishers2017:
+    """Tests confirming the parser works against the 2017 100M fixture too.
+
+    The parser was originally written for the 2024 page. These tests
+    confirm DUV's page format is stable across years and the same parser
+    handles 2017 without modification.
+    """
+
+    def _load_fixture(self) -> str:
+        """Read the saved 2017 100M HTML fixture."""
+        return FIXTURE_2017_PATH.read_text(encoding="utf-8")
+
+    def test_returns_expected_finisher_count(self) -> None:
+        """The 2017 100M fixture should yield 270 finishers."""
+        parser = DUVParser()
+        results = parser.parse_all_finishers(self._load_fixture(), year=2017, distance="100M")
+        assert len(results) == 270
+
+    def test_first_finisher_is_brian_rusiecki(self) -> None:
+        """The 2017 winner is Brian Rusiecki."""
+        parser = DUVParser()
+        results = parser.parse_all_finishers(self._load_fixture(), year=2017, distance="100M")
+        assert results[0].runner_name == "Rusiecki, Brian"
+        assert results[0].rank_overall == 1
+
+    def test_first_finisher_finish_time(self) -> None:
+        """Brian Rusiecki's 2017 finish time is 15:12:28."""
+        parser = DUVParser()
+        results = parser.parse_all_finishers(self._load_fixture(), year=2017, distance="100M")
+        assert results[0].finish_time == timedelta(hours=15, minutes=12, seconds=28)
+
+    def test_year_tagging(self) -> None:
+        """Every parsed result should be tagged year=2017."""
+        parser = DUVParser()
+        results = parser.parse_all_finishers(self._load_fixture(), year=2017, distance="100M")
+        assert all(r.year == 2017 for r in results)
