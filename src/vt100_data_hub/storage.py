@@ -9,6 +9,8 @@ from __future__ import annotations
 import logging
 import sqlite3
 
+from vt100_data_hub.race_result import RaceResult
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,5 +49,47 @@ class ResultStorage:
                 rank_category INTEGER
             )
             """
+        )
+        self.connection.commit()
+
+    def save_result(self, result: RaceResult) -> None:
+        """Insert one RaceResult into the race_results table.
+
+        The RaceResult's finish_time (timedelta) is converted to integer
+        seconds for SQLite storage. Optional fields are stored as NULL
+        when absent.
+
+        Args:
+            result: A RaceResult parsed from DUV or another source.
+        """
+        finish_time_seconds = (
+            int(result.finish_time.total_seconds())
+            if result.finish_time is not None
+            else None
+        )
+        self.connection.execute(
+            """
+            INSERT INTO race_results (
+                year, distance, runner_name, status,
+                rank_overall, finish_time_seconds, duv_runner_id,
+                gender, year_of_birth, nationality,
+                category, rank_gender, rank_category
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                result.year,
+                result.distance,
+                result.runner_name,
+                result.status,
+                result.rank_overall,
+                finish_time_seconds,
+                result.duv_runner_id,
+                result.gender,
+                result.year_of_birth,
+                result.nationality,
+                result.category,
+                result.rank_gender,
+                result.rank_category,
+            ),
         )
         self.connection.commit()
