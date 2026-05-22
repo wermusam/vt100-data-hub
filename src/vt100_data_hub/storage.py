@@ -54,45 +54,25 @@ class ResultStorage:
         self.connection.commit()
 
     def save_result(self, result: RaceResult) -> None:
-        """Insert one RaceResult into the race_results table.
-
-        The RaceResult's finish_time (timedelta) is converted to integer
-        seconds for SQLite storage. Optional fields are stored as NULL
-        when absent.
+        """Insert one RaceResult and commit immediately.
 
         Args:
-            result: A RaceResult parsed from DUV or another source.
+            result: A RaceResult to insert.
         """
-        finish_time_seconds = (
-            int(result.finish_time.total_seconds())
-            if result.finish_time is not None
-            else None
-        )
-        self.connection.execute(
-            """
-            INSERT INTO race_results (
-                year, distance, runner_name, status,
-                rank_overall, finish_time_seconds, duv_runner_id,
-                gender, year_of_birth, nationality,
-                category, rank_gender, rank_category
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                result.year,
-                result.distance,
-                result.runner_name,
-                result.status,
-                result.rank_overall,
-                finish_time_seconds,
-                result.duv_runner_id,
-                result.gender,
-                result.year_of_birth,
-                result.nationality,
-                result.category,
-                result.rank_gender,
-                result.rank_category,
-            ),
-        )
+        self._insert_result(result)
+        self.connection.commit()
+
+    def save_results(self, results: list[RaceResult]) -> None:
+        """Insert many RaceResults in a single transaction.
+
+        Inserts every row without committing in between, then commits
+        once at the end. Much faster than calling save_result in a loop.
+
+        Args:
+            results: A list of RaceResults to insert.
+        """
+        for result in results:
+            self._insert_result(result)
         self.connection.commit()
 
     def load_all_results(self) -> list[RaceResult]:
@@ -144,3 +124,40 @@ class ResultStorage:
                 )
             )
         return results
+
+    def _insert_result(self, result: RaceResult) -> None:
+        """Execute the INSERT for one result. Does not commit.
+
+        Args:
+            result: A RaceResult to insert.
+        """
+        finish_time_seconds = (
+            int(result.finish_time.total_seconds())
+            if result.finish_time is not None
+            else None
+        )
+        self.connection.execute(
+            """
+            INSERT INTO race_results (
+                year, distance, runner_name, status,
+                rank_overall, finish_time_seconds, duv_runner_id,
+                gender, year_of_birth, nationality,
+                category, rank_gender, rank_category
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                result.year,
+                result.distance,
+                result.runner_name,
+                result.status,
+                result.rank_overall,
+                finish_time_seconds,
+                result.duv_runner_id,
+                result.gender,
+                result.year_of_birth,
+                result.nationality,
+                result.category,
+                result.rank_gender,
+                result.rank_category,
+            ),
+        )

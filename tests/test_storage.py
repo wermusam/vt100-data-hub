@@ -144,3 +144,42 @@ class TestLoadAllResults:
         assert len(loaded) == 2
         names = {r.runner_name for r in loaded}
         assert names == {"Gage, Sarah", "Rusiecki, Brian"}
+
+
+class TestSaveResults:
+    """Tests for ResultStorage.save_results on an in-memory database."""
+
+    def _make_storage(self) -> ResultStorage:
+        """Build a ResultStorage with the schema already created."""
+        storage = ResultStorage(sqlite3.connect(":memory:"))
+        storage.create_schema()
+        return storage
+
+    def test_saves_all_results_in_list(self) -> None:
+        """Three results saved in bulk should all come back via load_all_results."""
+        storage = self._make_storage()
+        results = [
+            RaceResult(
+                year=2024,
+                distance="100M",
+                runner_name="Gage, Sarah",
+                status="FINISH",
+            ),
+            RaceResult(
+                year=2017,
+                distance="100M",
+                runner_name="Rusiecki, Brian",
+                status="FINISH",
+            ),
+            RaceResult(
+                year=2025,
+                distance="100K",
+                runner_name="Test, Runner",
+                status="FINISH",
+            ),
+        ]
+        storage.save_results(results)
+        loaded = storage.load_all_results()
+        assert len(loaded) == 3
+        names = {r.runner_name for r in loaded}
+        assert names == {"Gage, Sarah", "Rusiecki, Brian", "Test, Runner"}
