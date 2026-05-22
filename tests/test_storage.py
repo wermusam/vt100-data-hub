@@ -76,3 +76,71 @@ class TestSaveResult:
         storage.save_result(self._make_result())
         cursor = storage.connection.execute("SELECT year, distance FROM race_results")
         assert cursor.fetchone() == (2024, "100M")
+
+
+class TestLoadAllResults:
+    """Tests for ResultStorage.load_all_results on an in-memory database."""
+
+    def _make_storage(self) -> ResultStorage:
+        """Build a ResultStorage with the schema already created."""
+        storage = ResultStorage(sqlite3.connect(":memory:"))
+        storage.create_schema()
+        return storage
+
+    def _make_result(self) -> RaceResult:
+        """Build a sample RaceResult matching the 2024 winner."""
+        return RaceResult(
+            year=2024,
+            distance="100M",
+            runner_name="Gage, Sarah",
+            status="FINISH",
+            rank_overall=1,
+            finish_time=timedelta(hours=17, minutes=19, seconds=45),
+            duv_runner_id=1645043,
+            gender="F",
+            year_of_birth=1995,
+            nationality="USA",
+            category="W23",
+            rank_gender=1,
+            rank_category=1,
+        )
+
+    def test_returns_empty_list_when_no_rows(self) -> None:
+        """An empty database should produce an empty list."""
+        storage = self._make_storage()
+        assert storage.load_all_results() == []
+
+    def test_round_trips_single_result(self) -> None:
+        """A saved result should come back with all fields intact."""
+        storage = self._make_storage()
+        original = self._make_result()
+        storage.save_result(original)
+        loaded = storage.load_all_results()
+        assert len(loaded) == 1
+        result = loaded[0]
+        assert result.runner_name == original.runner_name
+        assert result.year == original.year
+        assert result.distance == original.distance
+        assert result.finish_time == original.finish_time
+        assert result.gender == original.gender
+        assert result.category == original.category
+        assert result.duv_runner_id == original.duv_runner_id
+
+    def test_returns_multiple_results(self) -> None:
+        """Two saved results should both come back."""
+        storage = self._make_storage()
+        first = self._make_result()
+        second = RaceResult(
+            year=2017,
+            distance="100M",
+            runner_name="Rusiecki, Brian",
+            status="FINISH",
+            rank_overall=1,
+            finish_time=timedelta(hours=15, minutes=12, seconds=28),
+        )
+        storage.save_result(first)
+        storage.save_result(second)
+        loaded = storage.load_all_results()
+        assert len(loaded) == 2
+        names = {r.runner_name for r in loaded}
+        assert names == {"Gage, Sarah", "Rusiecki, Brian"}

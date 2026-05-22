@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from datetime import timedelta
 
 from vt100_data_hub.race_result import RaceResult
 
@@ -93,3 +94,53 @@ class ResultStorage:
             ),
         )
         self.connection.commit()
+
+    def load_all_results(self) -> list[RaceResult]:
+        """Return every row in race_results as RaceResult objects.
+
+        Integer finish_time_seconds is converted back to timedelta on the
+        way out. NULL values are mapped to Python None.
+
+        Returns:
+            A list of RaceResult objects in the order SQLite returns them.
+        """
+        cursor = self.connection.execute(
+            """
+            SELECT year, distance, runner_name, status,
+                   rank_overall, finish_time_seconds, duv_runner_id,
+                   gender, year_of_birth, nationality,
+                   category, rank_gender, rank_category
+            FROM race_results
+            """
+        )
+        results: list[RaceResult] = []
+        for row in cursor:
+            (
+                year, distance, runner_name, status,
+                rank_overall, finish_time_seconds, duv_runner_id,
+                gender, year_of_birth, nationality,
+                category, rank_gender, rank_category,
+            ) = row
+            finish_time = (
+                timedelta(seconds=finish_time_seconds)
+                if finish_time_seconds is not None
+                else None
+            )
+            results.append(
+                RaceResult(
+                    year=year,
+                    distance=distance,
+                    runner_name=runner_name,
+                    status=status,
+                    rank_overall=rank_overall,
+                    finish_time=finish_time,
+                    duv_runner_id=duv_runner_id,
+                    gender=gender,
+                    year_of_birth=year_of_birth,
+                    nationality=nationality,
+                    category=category,
+                    rank_gender=rank_gender,
+                    rank_category=rank_category,
+                )
+            )
+        return results
