@@ -185,8 +185,10 @@ class DUVParser:
         gender_text = cells[6].get_text(strip=True)
         gender = gender_text if gender_text in ("M", "F", "NB") else None
         rank_gender = int(cells[7].get_text(strip=True))
-        category = cells[8].get_text(strip=True) or None
-        rank_category = int(cells[9].get_text(strip=True))
+        category_text = cells[8].get_text(strip=True)
+        category = category_text if category_text and category_text != "#NA" else None
+        rank_category_text = cells[9].get_text(strip=True)
+        rank_category = int(rank_category_text) if rank_category_text else None
         return RaceResult(
             year=year,
             distance=distance,

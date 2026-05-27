@@ -77,6 +77,7 @@ class FixtureSaver:
         logging.basicConfig(level=logging.INFO, format="%(message)s")
         self.save_one(year=2024, distance="100M")
         self.save_one(year=2017, distance="100M")
+        self.save_one(year=2018, distance="100K")
 
 
 if __name__ == "__main__":

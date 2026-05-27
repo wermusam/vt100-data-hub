@@ -1,0 +1,1215 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<!-- <meta http-equiv="content-type" content="text/html; charset=utf-8" />  -->
+    <meta charset="utf-8">	
+	<title>DUV Ultra Marathon Statistics</title>
+	
+	<meta http-equiv="Content-Script-Type" content="text/javascript" />
+	<meta http-equiv="Content-Style-Type" content="text/css" />
+	
+	<meta name="author" content="Jürgen Schoch" />
+	<meta name="publisher" content="DUV" />
+	<meta name="copyright" content="DUV" />
+	<meta name="keywords" content="DUV, Ultramarathon, Bestenliste, Laufen, Ranking, running, statistics" />
+	<meta name="description" content="DUV Ultramarathon-Statistik" />
+	<meta name="page-topic" content="Marathon" />
+	<meta name="audience" content="All" />
+	<meta name="expires" content="NEVER" />
+	<meta name="page-type" content="Statistik" />
+	<meta name="robots" content="INDEX,FOLLOW" />	
+	
+    <link rel="apple-touch-icon" size="180x180" href="/apple-touch-icon.png?v2=2bweXROPWO"/>
+    <link rel="icon" type="image/png" href="/favicon-32x32.png?v2=2bweXROPWO" size="32x32"/>
+    <link rel="icon" type="image/png" href="/favicon-16x16.png?v2=2bweXROPWO" size="16x16"/>
+    <link rel="manifest" href="/manifest.json?v2=2bweXROPWO"/>
+    <link rel="mask-icon" href="/safari-pinned-tab.svg?v2=2bweXROPWO" color="#5bbad5"/>
+    <link rel="shortcut icon" href="/favicon.ico?v2=2bweXROPWO"/>
+    <meta name="apple-mobile-web-app-title" content="DUV Stats"/>
+    <meta name="application-name" content="DUV Stats"/>
+    <meta name="msapplication-TileColor" content="#ffc40d"/>
+    <meta name="msapplication-TileImage" content="/mstile-144x144.png?v2=2bweXROPWO"/>
+    <meta name="theme-color" content="#ffffff"/>
+       
+	<link rel="stylesheet" href="duv_statistics.css" type="text/css" />
+	<link rel="alternate" type="application/rss+xml" href="latestresults_rss.php" title="RSS 2.0 feed for the latest results" />
+	<link rel="alternate" type="application/rss+xml" href="latestresultsGBR_rss.php" title="RSS 2.0 feed for the latest results from UK" />
+	<link rel="alternate" type="application/rss+xml" href="xml/nextraces_rss.php" title="RSS 2.0 feed for upcoming races" />
+	<link rel="alternate" type="application/rss+xml" href="xml/nextracesGBR_rss.php" title="RSS 2.0 feed for upcoming races in UK" />
+    
+</head>
+
+<body>
+<script type="text/javascript" src="lib/overlib.js"><!-- overLIB (c) Erik Bosrup --></script>
+
+<!-- header with DUV Logo, heading and photo  -->
+<div id="header">    
+	<table width="100%" border="0" cellpadding="0" cellspacing="0">
+		  <tr>
+			<td width="15" height="140"><img src="_bilder/round_edge_left.gif" width="15" height="140" alt="" /></td>        
+			<td width="260" height="140" bgcolor="#FFFFFF" ><a href="https://www.ultra-marathon.org/" title="DUV home page">
+				<img src="_bilder/duv_logo.gif" alt="DUV home page" border="0"/></a></td>
+			<td height="140" valign="middle" align="center" bgcolor="#FFFFFF"><h2>Ultra Marathon Statistics</h2></td>        
+			<td width="150" align="right"><img src="_bilder/header.jpg" alt="Ultra-Marathon" /></td>
+			<td width="15"><img src="_bilder/round_edge_right.gif" width="15" height="140" alt="" /></td>
+		  </tr>
+	</table>
+</div>
+
+<!-- language selection row  -->	
+<div id='language_selection'><span>Select your language:</span>		  
+	<ul id='langflags'>
+		<li id='flag1'><a href='/getresultevent.php?event=49458&amp;language=DE' title='Deutsch'></a></li>
+		<li id='flag2'><a href='/getresultevent.php?event=49458&amp;language=EN' title='English'></a></li>
+		<li id='flag3'><a href='/getresultevent.php?event=49458&amp;language=FR' title='Français'></a></li>	      	  
+		<li id='flag4'><a href='/getresultevent.php?event=49458&amp;language=ES' title='Español'></a></li>
+		<li id='flag5'><a href='/getresultevent.php?event=49458&amp;language=IT' title='Italiano'></a></li>
+		<li id='flag6'><a href='/getresultevent.php?event=49458&amp;language=RU' title='русский'></a></li>
+		<li id='flag7'><a href='/getresultevent.php?event=49458&amp;language=ZH' title='简体中文'></a></li>
+		<li id='flag8'><a href='/getresultevent.php?event=49458&amp;language=JA' title='日本語'></a></li>
+	</ul>
+</div>
+
+<div id="container">
+	<div id="sidebar">	<!-- begin of sidebar  -->	 	
+			<!-- the list of navigation links  -->
+			<div class="navigationh3"><strong>Navigation</strong></div>
+			<div class="navigation">
+				<ul>
+					<li><a href='index.php' class='Nav1'>Start page</a></li>
+					<li><a href='calendar.php' class='Nav1'>Race calendar</a></li>
+					<li><a href='geteventlist.php' class='Nav1'>Results database</a></li>                					
+					<li><a href='overview_intbestlist.php' class='Nav1'>International rankings</a></li>
+					<li><a href='overview_dtbestlist.php' class='Nav1'>German rankings</a></li>
+					<li><a href='overview_cups.php' class='Nav1'>Cups</a></li>
+					<li><a href='overview_records.php' class='Nav1'>Records</a></li>
+					<li><a href='overview_champions.php' class='Nav1'>Championships</a></li>					
+					<li><a href='summary.php' class='Nav1'>Summary</a></li> 
+					<li><a href='whatsnew.php' class='Nav1'>What's new?</a></li>
+					<li><a href='faq.php' class='Nav1'>FAQ</a></li>
+					<li><a href='credits.php' class='Nav1'>Credits</a></li>
+					<li><a href='contact4.php' class='Nav1'>Contact</a></li>
+                    <li><a href='https://ladm.duv.de/index.php' class='Nav1'>LADM</a></li>
+					<li><a href='https://www.ultra-marathon.org/' class='Nav1'>DUV home page</a></li>
+				</ul>		
+			</div>   <!-- end of navigation links  -->
+			
+			<img src="_bilder/_clearpixel.gif" width="180" height="12" alt="" />
+			
+			<!-- the list of search links  -->
+			<div class="navigationh3"><strong>Search</strong></div>
+			<div class="navigation">		
+				<form class='search' name='NameSearch' method='get' action='searchrunner.php'>
+					<span><strong>Search for person</strong></span> 
+                    <a href="" onmouseover="return overlib('Enter surname, e.g. <br><b>Smith</b> <br>This will put wildcards automatically and search for Smith*.<br> For a more specific search use surname, given name separated by comma, e.g. <br><b>Smith, John</b> <br> This will put wildcards automatically and search for <b>Smith*, *John*</b><br><br> You can also search names using Greek, Cyrillic or Hebrew characters. <br>For names in Chinese, Japanese or Korean characters do not put a space or comma between surname and given name.', MOUSEOFF);" 
+		                 onmouseout="return nd();">(info)</a>
+                    <br />
+					<input name='sname' type='text' size='12' value='' />
+					<input class='go' name='Submit' type='image' src='_bilder/go.gif' alt='Start search' /> 
+																	
+				</form>	
+				<form class='search' name='ClubSearch' method='get' action='getresultclub.php'>
+					<span><strong>Search for club</strong></span> 
+                    <a href="" onmouseover="return overlib('Enter part of club name.', MOUSEOFF);" 
+		                 onmouseout="return nd();">(info)</a>
+                    <br />
+					<input name='club' type='text' size='12' value='' />
+					<input class='go' name='Submit' type='image' src='_bilder/go.gif' alt='Start search' /> 																	
+				</form>	
+				<form class='search' name='EventSearch' method='get' action='searchevent.php'>
+					<span><strong>Search for event</strong></span> 
+                    <a href="" onmouseover="return overlib('Enter part of event name or start location (town), e.g.<br><b>York</b><br> This will put wildcards automatically and search for <b>*York*</b>. <br><br> For a more specific search use Length/Duration or Country separated by comma, e.g. <br><b>York,100,USA</b><br> This will find 100km or 100mi events in New York (USA), but not in Yorkshire (GBR)', MOUSEOFF);" 
+		                 onmouseout="return nd();">(info)</a>
+                    <br />
+					<input name='sname' type='text' size='12' value='' />
+					<input class='go' name='Submit' type='image' src='_bilder/go.gif' alt='Start search' /> 
+				</form>	
+				<p style="margin: 6px;"><ul><li><a href='bulk_search.php' class='Nav1'>Bulk search</a></li></ul></p>
+			</div>   <!-- end of search links  -->
+
+	</div>   <!-- end of sidebar  -->
+	
+	<div id="mainbox">   <!-- begin of main content  -->
+	<div id="infobox">
+<table width='665' align='left' border='0' ><tr>
+<td><a class='nocolor' href='https://protime.si/wp-content/uploads/2026/04/Kruna_kralja_zvonimira_Konacni.pdf' target='_blank'>
+  <img title='Crown of King Zvonimir race, Solin CRO' alt='Crown of King Zvonimir race, Solin CRO' src='./_bilder/infobox/zvonimir2.gif' width='300' height='60' /></a>
+</td><td width='30'>&nbsp;</td>
+<td><a class='nocolor' href='mailto:werbung@d-u-v.org?subject=Banner auf Statistikseite' target='_blank'>
+  <img title='Hier könnte ihre Werbung stehen!' alt='Hier könnte ihre Werbung stehen!' src='./_bilder/infobox/duv_werbung.gif' width='300' height='60' /></a>
+</td><td width='30'>&nbsp;</td>
+</tr>
+</table>
+	</div>   <!-- end of infobox  -->
+	
+
+
+<script type="text/javascript" src="lib/overlib.js"><!-- overLIB (c) Erik Bosrup --></script>
+<div id="overDiv" style="position:absolute; visibility:hidden; z-index:1000;"></div>
+<script type="text/javascript" src="lib/sortable.js"><!-- source: http://yoast.com/articles/sortable-table/  --></script> 
+<script type="text/javascript" src="lib/toggleSpan.js"><!-- source: http://www.tjkdesign.com/articles/toggle_elements.asp  --></script> 
+
+<form name='Filter' method='get' action='/getresultevent.php'>
+ <table width='750' border='0' cellspacing='0' cellpadding='4'>
+ 	<tr><td class='navigationh3'><strong>Filter</strong></td>  </tr>
+ 	<tr><td bgcolor='#F1F1F1'> 
+	  <input name='event' type='hidden' value='49458' /> 
+&nbsp;&nbsp;Cat: <select name='cat' size='1'>
+	<option value='all'>all</option>
+	<option value='M'>men</option>
+	<option value='W'>women</option>
+	<option>-----</option>
+	<option value='%23NA'>#NA</option>
+	<option value='M23'>M23</option>
+	<option value='M35'>M35</option>
+	<option value='M40'>M40</option>
+	<option value='M45'>M45</option>
+	<option value='M50'>M50</option>
+	<option value='M55'>M55</option>
+	<option value='M60'>M60</option>
+	<option value='M65'>M65</option>
+	<option value='W23'>W23</option>
+	<option value='W35'>W35</option>
+	<option value='W40'>W40</option>
+	<option value='W45'>W45</option>
+	<option value='W50'>W50</option>
+	<option value='W55'>W55</option>
+	<option value='W60'>W60</option>
+</select>
+&nbsp;&nbsp;Country:<select name='country' size='1'>
+	<option value='ALL'>all</option>
+	<option>-----</option>
+	<option>CAN</option>
+	<option>MEX</option>
+	<option>USA</option>
+</select>
+&nbsp;&nbsp;Avg.Speed:<select name='speed' size='1'>
+	<option value='1' selected='selected'>km/h</option>
+	<option value='2'>min/km</option>
+</select>
+&nbsp;&nbsp;Category type:<select name='aktype' size='1'>
+	<option value='1'>Cat. german</option>
+	   <option value='2' selected='selected'>Cat. internat.</option>
+	<option value='3'>event-specific</option>
+</select>
+	&nbsp;&nbsp;<input class='go' name='Submit' type='image' src='_bilder/go.gif' />
+  </td>
+ </tr>
+</table>
+</form>
+<table width='750' border='0' cellspacing='0' cellpadding='1'>
+  <tr><td width='20%' align='left' valign='top'><b>Date: </b></td>
+			<td>21.-22.07.2018</td>
+  <td align='right' valign='top'>
+    <a href='submit_link.php?referto=49458&amp;type=1&amp;back=http%3A%2F%2Fstatistik.d-u-v.org%2Fgetresultevent.php%3Fevent%3D49458'>
+
+			  <img src='_bilder/report_icon.gif' border='0' title='Submit link to report or GPS Track of this event' alt='' /></a>
+    <a href='mailto:?subject=Link%20recommendation%20DUV%20Statistics&amp;body=This%20web%20page%20in%20Ultramarathon%20Statistics%20of%20DUV%20might%20be%20interesting%3A%0D%0A%0D%0AVermont%20100%20km%20Endurance%20Race%2C%20West%20Windsor%2C%20VT%2C%2021.07.2018%0D%0A%0D%0Ahttp://statistik.d-u-v.org%2Fgetresultevent.php%3Fevent%3D49458
+'>
+    <img src='_bilder/mail_icon.gif' title='Send recommendation for this page' border='0' alt='Send Link' /></a>
+  </td></tr>
+  <tr><td width='20%' align='left' valign='top'><b>Event: </b></td>
+      <td>11th Vermont 100 km Endurance Race (USA)</td>
+		<td align='right' width='20%'><a href='eventdetail.php?event=49458'>More details of this race.</a></td>
+	</tr>
+  <tr><td width='20%' align='left'><b>Distance: </b></td><td> 100km  trail race</td>
+	<td align='right' width='40%'><a href='getresulteventalltime.php?event=49458'>All-time results of this event.</a></td></tr>
+  <tr><td width='20%' align='left'><b>Finishers: </b></td>
+      <td>67 (31 M, 36 F)</td>
+	<td align='right' width='40%'><a href='multiplefinish.php?event=49458'>Multiple Finishers.</a></td></tr>
+  <tr><td width='20%' align='left' valign='top'><b>Ranking eligible:</b></td><td colspan='2'> No </td></tr>
+  <tr><td width='20%' align='left' valign='top'><b>Source: </b></td><td colspan='2'>
+    	      <a href='https://www.tridentresults.com/event/242/results?round=1352' target='_BLANK'>Link</a> 
+    	      <font size='-2'>(Source at time of data acquisition.)</font></td></tr>
+  <tr><td width='20%' align='left' valign='top'><b>Recorded by: </b></td><td colspan='2'> Andreas Knop&nbsp;&nbsp;&nbsp;&nbsp; 
+ 
+											<span style='font-size:x-small'>29.07.2018 18:59</span> </td></tr>
+  <tr><td>&nbsp;</td></tr>
+</table>
+<table width='800' border='0'>
+<tr><td align='left'>67 search results</td><td>&nbsp;</td>
+</tr>
+</table>
+    
+
+<table width='99%' border='1' cellpadding='1' cellspacing='0' class="sortable" id="Resultlist">
+ <thead>
+  <tr>
+    <th width='5%'>Rank</th>
+    <th width='10%'>Performance</th>
+    <th>Surname, first name	</th>
+    <th>Club</th>
+    <th width='5%'>Nat.</th>
+    <th width='5%'>YOB</th>
+    <th width='5%'>M/F</th>
+    <th width='5%'>Rank M/F</th>
+    <th width='5%'rowspan='2'><a href='faq.php#CatCalc' onmouseover="return overlib('Click for information about calculation of age categories.', MOUSEOFF);" 
+		onmouseout="return nd();">Cat</a></th>
+    <th width='5%'>Cat. Rank</th>
+ <th width='5%'>Avg.Speed km/h</th>
+	<th width='10%' valign='bottom'><a href='faq.php#AgeGrading' onmouseover="return overlib('Click for information about age grading.', MOUSEOFF);" 
+		onmouseout="return nd();">Age graded performance</a></th>  	
+  </tr>
+ 
+ </thead>
+ <tbody id="EvtRslt">
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'> 9:39:12 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=63663'>&nbsp;Rusiecki, Brian</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1978</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='center'>M35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>10.359</td>
+  <td nowrap='nowrap' align='right'> 9:25:25 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>11:11:13 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=82362'>&nbsp;Wetzel, Lori</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1973</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>8.939</td>
+  <td nowrap='nowrap' align='right'>10:36:27 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>11:13:06 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=532553'>&nbsp;Ballou, Jec</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1977</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>8.914</td>
+  <td nowrap='nowrap' align='right'>10:57:05 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='right'>11:33:06 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=43362'>&nbsp;Esbitt, Gregory</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1974</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='center'>M40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>8.657</td>
+  <td nowrap='nowrap' align='right'>10:56:10 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>5</td>
+  <td nowrap='nowrap' align='right'>11:35:05 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=874864'>&nbsp;Bourque, Bryan</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>CAN&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1985</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='center'>M23&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>8.632</td>
+  <td nowrap='nowrap' align='right'>11:34:57 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>6</td>
+  <td nowrap='nowrap' align='right'>11:46:27 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=76854'>&nbsp;Livingston, Deborah</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1975</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>8.493</td>
+  <td nowrap='nowrap' align='right'>11:20:40 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>7</td>
+  <td nowrap='nowrap' align='right'>12:00:55 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=461601'>&nbsp;Eaton, Christopher</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1983</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='center'>M35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>8.323</td>
+  <td nowrap='nowrap' align='right'>11:56:58 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>8</td>
+  <td nowrap='nowrap' align='right'>12:39:35 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=622911'>&nbsp;Gomes, Zakarias</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1987</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>5</td>
+  <td nowrap='nowrap' align='center'>M23&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>7.899</td>
+  <td nowrap='nowrap' align='right'>12:39:35 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>9</td>
+  <td nowrap='nowrap' align='right'>12:55:17 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=1102029'>&nbsp;Delempdes, Beatrice</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>CAN&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1968</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='center'>W45&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>7.739</td>
+  <td nowrap='nowrap' align='right'>11:36:22 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>10</td>
+  <td nowrap='nowrap' align='right'>13:04:05 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=92458'>&nbsp;Fauci, Jay</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1973</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>6</td>
+  <td nowrap='nowrap' align='center'>M40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>7.652</td>
+  <td nowrap='nowrap' align='right'>12:16:11 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>11</td>
+  <td nowrap='nowrap' align='right'>13:04:45 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=1004298'>&nbsp;Garcia, Jim</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1952</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>7</td>
+  <td nowrap='nowrap' align='center'>M65&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>7.646</td>
+  <td nowrap='nowrap' align='right'>10:08:35 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>12</td>
+  <td nowrap='nowrap' align='right'>13:13:40 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=622955'>&nbsp;Sherriff, Graham</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1976</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>8</td>
+  <td nowrap='nowrap' align='center'>M40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>7.560</td>
+  <td nowrap='nowrap' align='right'>12:37:34 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>13</td>
+  <td nowrap='nowrap' align='right'>13:24:32 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=413434'>&nbsp;Bagaria, Rajay</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1977</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>9</td>
+  <td nowrap='nowrap' align='center'>M40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='right'>7.458</td>
+  <td nowrap='nowrap' align='right'>13:00:05 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>14</td>
+  <td nowrap='nowrap' align='right'>13:32:44 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=47221'>&nbsp;Novis, Andrew</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1963</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>10</td>
+  <td nowrap='nowrap' align='center'>M50&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>7.382</td>
+  <td nowrap='nowrap' align='right'>11:39:51 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>15</td>
+  <td nowrap='nowrap' align='right'>13:34:18 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=622931'>&nbsp;Nesbitt, Elizabeth</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1982</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>5</td>
+  <td nowrap='nowrap' align='center'>W35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>7.368</td>
+  <td nowrap='nowrap' align='right'>13:31:08 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>16</td>
+  <td nowrap='nowrap' align='right'>13:36:54 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=538991'>&nbsp;Reynolds, Tobey</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1973</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>11</td>
+  <td nowrap='nowrap' align='center'>M40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>5</td>
+  <td nowrap='nowrap' align='right'>7.345</td>
+  <td nowrap='nowrap' align='right'>12:47:00 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>17</td>
+  <td nowrap='nowrap' align='right'>13:39:31 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=143151'>&nbsp;Hutt, Kevin</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1967</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>12</td>
+  <td nowrap='nowrap' align='center'>M50&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>7.321</td>
+  <td nowrap='nowrap' align='right'>12:11:11 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>18</td>
+  <td nowrap='nowrap' align='right'>13:46:39 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=990573'>&nbsp;Chase, Allen</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>CAN&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1980</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>13</td>
+  <td nowrap='nowrap' align='center'>M35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>7.258</td>
+  <td nowrap='nowrap' align='right'>13:35:55 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>19</td>
+  <td nowrap='nowrap' align='right'>13:48:14 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=563911'>&nbsp;Rylyakov, Alexander</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1966</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>14</td>
+  <td nowrap='nowrap' align='center'>M50&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>7.244</td>
+  <td nowrap='nowrap' align='right'>12:12:35 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>20</td>
+  <td nowrap='nowrap' align='right'>13:54:01 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=1154850'>&nbsp;Carrier, Pierre-Alain</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>CAN&nbsp;</td>
+  <td nowrap='nowrap' align='center'>&nbsp;</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>15</td>
+  <td nowrap='nowrap' align='center'>#NA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>&nbsp;</td>
+  <td nowrap='nowrap' align='right'>7.194</td>
+  <td nowrap='nowrap' align='right'>13:54:01 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>21</td>
+  <td nowrap='nowrap' align='right'>14:01:27 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=865031'>&nbsp;Degler, David</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1972</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>16</td>
+  <td nowrap='nowrap' align='center'>M45&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>7.131</td>
+  <td nowrap='nowrap' align='right'>13:03:29 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>22</td>
+  <td nowrap='nowrap' align='right'>14:02:06 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=622914'>&nbsp;Riopel-Meunier, Julie</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>CAN&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1981</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>6</td>
+  <td nowrap='nowrap' align='center'>W35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>7.125</td>
+  <td nowrap='nowrap' align='right'>13:56:38 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>23</td>
+  <td nowrap='nowrap' align='right'>14:02:08 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=855457'>&nbsp;Pellerin, Martin</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>CAN&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1970</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>17</td>
+  <td nowrap='nowrap' align='center'>M45&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>7.125</td>
+  <td nowrap='nowrap' align='right'>12:51:04 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>24</td>
+  <td nowrap='nowrap' align='right'>14:02:14 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=277073'>&nbsp;Burdette, Stephanie</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1982</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>7</td>
+  <td nowrap='nowrap' align='center'>W35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>7.124</td>
+  <td nowrap='nowrap' align='right'>13:58:57 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>25</td>
+  <td nowrap='nowrap' align='right'>14:08:55 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=985388'>&nbsp;Howard, Terri</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>CAN&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1973</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>8</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='right'>7.068</td>
+  <td nowrap='nowrap' align='right'>13:24:57 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>26</td>
+  <td nowrap='nowrap' align='right'>14:12:51 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=865011'>&nbsp;Monette, Genevieve</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>CAN&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1980</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>9</td>
+  <td nowrap='nowrap' align='center'>W35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='right'>7.035</td>
+  <td nowrap='nowrap' align='right'>14:04:30 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>27</td>
+  <td nowrap='nowrap' align='right'>14:18:56 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=1154851'>&nbsp;Mahon-Deeble, Tara</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>&nbsp;</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>10</td>
+  <td nowrap='nowrap' align='center'>#NA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>&nbsp;</td>
+  <td nowrap='nowrap' align='right'>6.985</td>
+  <td nowrap='nowrap' align='right'>14:18:56 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>28</td>
+  <td nowrap='nowrap' align='right'>14:36:25 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=796183'>&nbsp;Gleiser, Kari Amber</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1975</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>11</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>5</td>
+  <td nowrap='nowrap' align='right'>6.846</td>
+  <td nowrap='nowrap' align='right'>14:04:26 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>29</td>
+  <td nowrap='nowrap' align='right'>14:40:06 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=798017'>&nbsp;Canarecci, Kimberly</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1976</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>12</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>6</td>
+  <td nowrap='nowrap' align='right'>6.817</td>
+  <td nowrap='nowrap' align='right'>14:13:53 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>30</td>
+  <td nowrap='nowrap' align='right'>14:46:15 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=824744'>&nbsp;Diana, Nick</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1979</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>18</td>
+  <td nowrap='nowrap' align='center'>M35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='right'>6.770</td>
+  <td nowrap='nowrap' align='right'>14:30:18 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>31</td>
+  <td nowrap='nowrap' align='right'>14:46:43 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=633769'>&nbsp;Trott, Ryan</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1988</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>19</td>
+  <td nowrap='nowrap' align='center'>M23&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>6.767</td>
+  <td nowrap='nowrap' align='right'>14:46:43 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>32</td>
+  <td nowrap='nowrap' align='right'>14:57:26 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=563814'>&nbsp;Mitchener, Lori</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1976</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>13</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>7</td>
+  <td nowrap='nowrap' align='right'>6.686</td>
+  <td nowrap='nowrap' align='right'>14:30:42 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>33</td>
+  <td nowrap='nowrap' align='right'>14:59:21 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=744481'>&nbsp;Selonick, Emily</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1987</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>14</td>
+  <td nowrap='nowrap' align='center'>W23&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>6.671</td>
+  <td nowrap='nowrap' align='right'>14:59:21 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>34</td>
+  <td nowrap='nowrap' align='right'>15:06:21 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=1154852'>&nbsp;Strong, Eric</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1984</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>20</td>
+  <td nowrap='nowrap' align='center'>M23&nbsp;</td>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='right'>6.620</td>
+  <td nowrap='nowrap' align='right'>15:05:16 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>35</td>
+  <td nowrap='nowrap' align='right'>15:20:59 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=148958'>&nbsp;Brown, Todd</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1968</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>21</td>
+  <td nowrap='nowrap' align='center'>M45&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>6.515</td>
+  <td nowrap='nowrap' align='right'>13:48:54 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>36</td>
+  <td nowrap='nowrap' align='right'>15:29:04 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=361921'>&nbsp;Darrow, Jenny</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1966</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>15</td>
+  <td nowrap='nowrap' align='center'>W50&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>6.458</td>
+  <td nowrap='nowrap' align='right'>13:33:58 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>37</td>
+  <td nowrap='nowrap' align='right'>15:33:58 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=92508'>&nbsp;Hobson, Todd</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1961</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>22</td>
+  <td nowrap='nowrap' align='center'>M55&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>6.424</td>
+  <td nowrap='nowrap' align='right'>13:09:46 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>38</td>
+  <td nowrap='nowrap' align='right'>15:40:48 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=1017711'>&nbsp;Haversat, Susan</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1965</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>16</td>
+  <td nowrap='nowrap' align='center'>W50&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>6.378</td>
+  <td nowrap='nowrap' align='right'>13:33:54 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>39</td>
+  <td nowrap='nowrap' align='right'>15:44:00 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=241312'>&nbsp;McLaughlin, Andrew</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1954</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>23</td>
+  <td nowrap='nowrap' align='center'>M60&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>6.356</td>
+  <td nowrap='nowrap' align='right'>12:26:48 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>40</td>
+  <td nowrap='nowrap' align='right'>15:51:50 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=683946'>&nbsp;Raymond, Faith</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1965</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>17</td>
+  <td nowrap='nowrap' align='center'>W50&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>6.304</td>
+  <td nowrap='nowrap' align='right'>13:43:26 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>41</td>
+  <td nowrap='nowrap' align='right'>16:00:59 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=761515'>&nbsp;Henderson, Keely</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1971</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>18</td>
+  <td nowrap='nowrap' align='center'>W45&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>6.244</td>
+  <td nowrap='nowrap' align='right'>14:53:49 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>42</td>
+  <td nowrap='nowrap' align='right'>16:03:22 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=92399'>&nbsp;Sorrell, Jennifer</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1963</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>19</td>
+  <td nowrap='nowrap' align='center'>W50&nbsp;</td>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='right'>6.228</td>
+  <td nowrap='nowrap' align='right'>13:32:02 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>43</td>
+  <td nowrap='nowrap' align='right'>16:08:38 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=796195'>&nbsp;Gleiser, Marcelo</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1959</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>24</td>
+  <td nowrap='nowrap' align='center'>M55&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>6.194</td>
+  <td nowrap='nowrap' align='right'>13:23:58 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>44</td>
+  <td nowrap='nowrap' align='right'>16:16:45 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=359199'>&nbsp;Morgan, Amy</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1977</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>20</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>8</td>
+  <td nowrap='nowrap' align='right'>6.143</td>
+  <td nowrap='nowrap' align='right'>15:53:31 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>45</td>
+  <td nowrap='nowrap' align='right'>16:26:27 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=43400'>&nbsp;Lacey, Neil</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1955</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>25</td>
+  <td nowrap='nowrap' align='center'>M60&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>6.082</td>
+  <td nowrap='nowrap' align='right'>13:08:05 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>46</td>
+  <td nowrap='nowrap' align='right'>16:42:28 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=593289'>&nbsp;George, Karin</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1964</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>21</td>
+  <td nowrap='nowrap' align='center'>W50&nbsp;</td>
+  <td nowrap='nowrap' align='center'>5</td>
+  <td nowrap='nowrap' align='right'>5.985</td>
+  <td nowrap='nowrap' align='right'>14:16:07 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>47</td>
+  <td nowrap='nowrap' align='right'>16:49:58 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=814778'>&nbsp;Leon Conde, Aurora</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1983</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>22</td>
+  <td nowrap='nowrap' align='center'>W23&nbsp;</td>
+  <td nowrap='nowrap' align='center'>2</td>
+  <td nowrap='nowrap' align='right'>5.941</td>
+  <td nowrap='nowrap' align='right'>16:48:03 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>48</td>
+  <td nowrap='nowrap' align='right'>16:54:22 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=62161'>&nbsp;Blais, Vicki</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1956</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>23</td>
+  <td nowrap='nowrap' align='center'>W60&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>5.915</td>
+  <td nowrap='nowrap' align='right'>12:56:30 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>49</td>
+  <td nowrap='nowrap' align='right'>16:58:35 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=622990'>&nbsp;Barlow, Raiel</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1980</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>24</td>
+  <td nowrap='nowrap' align='center'>W35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>5</td>
+  <td nowrap='nowrap' align='right'>5.891</td>
+  <td nowrap='nowrap' align='right'>16:48:37 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>50</td>
+  <td nowrap='nowrap' align='right'>16:58:38 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=798127'>&nbsp;Pilsucki, Christy</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1976</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>25</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>9</td>
+  <td nowrap='nowrap' align='right'>5.890</td>
+  <td nowrap='nowrap' align='right'>16:28:17 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>51</td>
+  <td nowrap='nowrap' align='right'>16:59:30 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=261427'>&nbsp;Armstrong, Charlotte</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1979</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>26</td>
+  <td nowrap='nowrap' align='center'>W35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>6</td>
+  <td nowrap='nowrap' align='right'>5.885</td>
+  <td nowrap='nowrap' align='right'>16:45:26 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>52</td>
+  <td nowrap='nowrap' align='right'>16:59:32 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=845466'>&nbsp;Souza, Diane</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1965</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>27</td>
+  <td nowrap='nowrap' align='center'>W50&nbsp;</td>
+  <td nowrap='nowrap' align='center'>6</td>
+  <td nowrap='nowrap' align='right'>5.885</td>
+  <td nowrap='nowrap' align='right'>14:42:00 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>53</td>
+  <td nowrap='nowrap' align='right'>17:00:26 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=882955'>&nbsp;Anderson, Deb</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1974</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>28</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>10</td>
+  <td nowrap='nowrap' align='right'>5.880</td>
+  <td nowrap='nowrap' align='right'>16:15:45 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>54</td>
+  <td nowrap='nowrap' align='right'>17:05:01 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=1154853'>&nbsp;Kohl, Shawna</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>&nbsp;</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>29</td>
+  <td nowrap='nowrap' align='center'>#NA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>&nbsp;</td>
+  <td nowrap='nowrap' align='right'>5.854</td>
+  <td nowrap='nowrap' align='right'>17:05:01 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>55</td>
+  <td nowrap='nowrap' align='right'>17:19:05 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=1154854'>&nbsp;O'Loughlin, Andrew</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1994</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>26</td>
+  <td nowrap='nowrap' align='center'>M23&nbsp;</td>
+  <td nowrap='nowrap' align='center'>5</td>
+  <td nowrap='nowrap' align='right'>5.774</td>
+  <td nowrap='nowrap' align='right'>17:19:05 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>56</td>
+  <td nowrap='nowrap' align='right'>17:21:38 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=963142'>&nbsp;Bergstrom, Jen</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1981</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>30</td>
+  <td nowrap='nowrap' align='center'>W35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>7</td>
+  <td nowrap='nowrap' align='right'>5.760</td>
+  <td nowrap='nowrap' align='right'>17:14:52 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>57</td>
+  <td nowrap='nowrap' align='right'>17:32:52 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=563802'>&nbsp;Robidoux, Kyle</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1976</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>27</td>
+  <td nowrap='nowrap' align='center'>M40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>6</td>
+  <td nowrap='nowrap' align='right'>5.699</td>
+  <td nowrap='nowrap' align='right'>16:53:11 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>58</td>
+  <td nowrap='nowrap' align='right'>17:49:09 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=798165'>&nbsp;Farnham, Jessie</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1977</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>31</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>11</td>
+  <td nowrap='nowrap' align='right'>5.612</td>
+  <td nowrap='nowrap' align='right'>17:23:43 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>59</td>
+  <td nowrap='nowrap' align='right'>17:49:32 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=70737'>&nbsp;Tabara, Kelly</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1969</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>32</td>
+  <td nowrap='nowrap' align='center'>W45&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>5.610</td>
+  <td nowrap='nowrap' align='right'>16:12:32 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>60</td>
+  <td nowrap='nowrap' align='right'>17:49:35 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=798144'>&nbsp;Draper, Kevin</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1972</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>28</td>
+  <td nowrap='nowrap' align='center'>M45&nbsp;</td>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='right'>5.610</td>
+  <td nowrap='nowrap' align='right'>16:35:54 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>61</td>
+  <td nowrap='nowrap' align='right'>17:49:55 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=47275'>&nbsp;Cullings, Meg</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1961</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>33</td>
+  <td nowrap='nowrap' align='center'>W55&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1</td>
+  <td nowrap='nowrap' align='right'>5.608</td>
+  <td nowrap='nowrap' align='right'>14:38:12 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>62</td>
+  <td nowrap='nowrap' align='right'>17:50:01 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=683888'>&nbsp;Gruettner, Eric</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1980</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>29</td>
+  <td nowrap='nowrap' align='center'>M35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>5</td>
+  <td nowrap='nowrap' align='right'>5.607</td>
+  <td nowrap='nowrap' align='right'>17:36:07 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>63</td>
+  <td nowrap='nowrap' align='right'>17:57:02 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=338743'>&nbsp;Gonzalez, Lara</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1975</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>34</td>
+  <td nowrap='nowrap' align='center'>W40&nbsp;</td>
+  <td nowrap='nowrap' align='center'>12</td>
+  <td nowrap='nowrap' align='right'>5.571</td>
+  <td nowrap='nowrap' align='right'>17:09:52 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>64</td>
+  <td nowrap='nowrap' align='right'>17:58:58 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=461639'>&nbsp;Richards, Gary</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1955</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>30</td>
+  <td nowrap='nowrap' align='center'>M60&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>5.561</td>
+  <td nowrap='nowrap' align='right'>14:22:00 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>65</td>
+  <td nowrap='nowrap' align='right'>19:07:41 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=971270'>&nbsp;Simister, Erica</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1980</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>35</td>
+  <td nowrap='nowrap' align='center'>W35&nbsp;</td>
+  <td nowrap='nowrap' align='center'>8</td>
+  <td nowrap='nowrap' align='right'>5.228</td>
+  <td nowrap='nowrap' align='right'>18:56:27 h</td>
+</tr>
+<tr class='even'>
+  <td nowrap='nowrap' align='center'>66</td>
+  <td nowrap='nowrap' align='right'>19:11:56 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=557460'>&nbsp;Martinez-Guillen, Lourdes (Lulu)</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>MEX&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1984</td>
+  <td nowrap='nowrap' align='center'>F</td>
+  <td nowrap='nowrap' align='center'>36</td>
+  <td nowrap='nowrap' align='center'>W23&nbsp;</td>
+  <td nowrap='nowrap' align='center'>3</td>
+  <td nowrap='nowrap' align='right'>5.209</td>
+  <td nowrap='nowrap' align='right'>19:11:08 h</td>
+</tr>
+<tr class='odd'>
+  <td nowrap='nowrap' align='center'>67</td>
+  <td nowrap='nowrap' align='right'>19:24:56 h&nbsp;</td>
+  <td nowrap='nowrap' align='left'><a href='getresultperson.php?runner=43356'>&nbsp;Dickey, Lee</a></td>
+  <td nowrap='nowrap' align='left'> &nbsp;</td>
+  <td nowrap='nowrap' align='center'>USA&nbsp;</td>
+  <td nowrap='nowrap' align='center'>1953</td>
+  <td nowrap='nowrap' align='center'>M</td>
+  <td nowrap='nowrap' align='center'>31</td>
+  <td nowrap='nowrap' align='center'>M60&nbsp;</td>
+  <td nowrap='nowrap' align='center'>4</td>
+  <td nowrap='nowrap' align='right'>5.151</td>
+  <td nowrap='nowrap' align='right'>15:12:30 h</td>
+</tr>
+</tbody></table>
+
+<p /><table width='800' border='0'><tr><td align='center'><div class='pagination'></div></td></tr></table>
+
+	</div>   <!-- end of mainbox -->
+	
+</div>  <!-- end of container -->
+
+<div id='footer'>		
+	<p class="Copyright">
+		<a href='https://www.ultra-marathon.org/index.php/berichte-news/news/2-uncategorised/4-impressum' target='_blank'>Impressum</a> &#8226;
+        <a href='dataprivacy-de.php' target='_blank'>Data privacy statement</a> 
+        <br />
+		Copyright &copy; Deutsche Ultramarathon-Vereinigung e.V. 2006-2026 &#8226; 
+		Design by munique design
+	</p>
+</div>    <!-- end of footer -->
+
+
+</body>
+</html>
