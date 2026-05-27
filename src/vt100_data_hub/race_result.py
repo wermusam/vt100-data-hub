@@ -11,25 +11,6 @@ Status = Literal["FINISH", "DNF", "DNS"]
 Gender = Literal["M", "F", "NB"]
 
 
-class AidStationSplit:
-    """One runner's split time at one named aid station.
-
-    Attributes:
-        station_name: The aid station name as it appears on DUV
-            (e.g., "Camp 10 Bear", "Spirit of 76").
-        elapsed_time: Time elapsed from race start to this station.
-            None if the runner did not reach this station.
-    """
-
-    def __init__(
-        self,
-        station_name: str,
-        elapsed_time: timedelta | None,
-    ) -> None:
-        self.station_name = station_name
-        self.elapsed_time = elapsed_time
-
-
 class RaceResult:
     """One runner's result for one edition of the Vermont 100.
 
@@ -47,9 +28,6 @@ class RaceResult:
         category: Age/gender category (e.g., "M40"). None if not published.
         rank_gender: Place within gender. None for DNF/DNS.
         rank_category: Place within age/gender category. None for DNF/DNS.
-        club: Running club. None if not published.
-        is_awd: True if Athletes With Disabilities division.
-        splits: Ordered list of aid station splits. Empty if none published.
     """
 
     def __init__(
@@ -67,9 +45,6 @@ class RaceResult:
         category: str | None = None,
         rank_gender: int | None = None,
         rank_category: int | None = None,
-        club: str | None = None,
-        is_awd: bool = False,
-        splits: list[AidStationSplit] | None = None,
     ) -> None:
         self.year = year
         self.distance = distance
@@ -84,6 +59,3 @@ class RaceResult:
         self.category = category
         self.rank_gender = rank_gender
         self.rank_category = rank_category
-        self.club = club
-        self.is_awd = is_awd
-        self.splits = splits if splits is not None else []

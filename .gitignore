@@ -219,3 +219,9 @@ __marimo__/
 
 # Local sanity-check files
 check.html
+
+# Personal Claude Code context (project-local, not shared)
+CLAUDE.md
+
+# SQLite database files
+data/

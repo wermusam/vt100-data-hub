@@ -5,30 +5,25 @@ from __future__ import annotations
 import logging
 import time
 
-from vt100_data_hub.duv_events import Distance, DUVEventRegistry
 from vt100_data_hub.duv import DUVFetcher
+from vt100_data_hub.duv_events import Distance, DUVEventRegistry
 
 logger = logging.getLogger(__name__)
 
 
 class DUVEventIDVerifier:
-    """Verify DUV event IDs by checking each event page's title contains the expected year.
+    """Verify DUV event IDs by checking each event page's body for the expected year.
 
     Attributes:
+        polite_delay_seconds: Delay between requests to avoid hammering DUV.
         fetcher: A DUVFetcher used to retrieve each event page.
         registry: A DUVEventRegistry whose IDs will be verified.
-        polite_delay_seconds: Delay between requests to avoid hammering DUV.
     """
 
-    def __init__(
-        self,
-        fetcher: DUVFetcher,
-        registry: DUVEventRegistry,
-        polite_delay_seconds: float = 2.0,
-    ) -> None:
-        self.fetcher = fetcher
-        self.registry = registry
+    def __init__(self, polite_delay_seconds: float = 2.0) -> None:
         self.polite_delay_seconds = polite_delay_seconds
+        self.fetcher = DUVFetcher()
+        self.registry = DUVEventRegistry()
 
     def verify_one(self, year: int, distance: Distance, event_id: int) -> bool:
         """Fetch one event page and check the body mentions the expected year.
@@ -76,22 +71,20 @@ class DUVEventIDVerifier:
             time.sleep(self.polite_delay_seconds)
         return failures
 
+    def run(self) -> None:
+        """Configure logging and run verification across all event IDs.
 
-def main() -> None:
-    """Run verification across all event IDs in the default registry."""
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
-    verifier = DUVEventIDVerifier(
-        fetcher=DUVFetcher(),
-        registry=DUVEventRegistry(),
-    )
-    failures = verifier.verify_all()
-    if failures:
-        logger.error(
-            "FAILED: %d event ID(s) did not match: %s", len(failures), failures
-        )
-    else:
-        logger.info("All event IDs verified.")
+        Entry point for command-line use.
+        """
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
+        failures = self.verify_all()
+        if failures:
+            logger.error(
+                "FAILED: %d event ID(s) did not match: %s", len(failures), failures
+            )
+        else:
+            logger.info("All event IDs verified.")
 
 
 if __name__ == "__main__":
-    main()
+    DUVEventIDVerifier().run()
