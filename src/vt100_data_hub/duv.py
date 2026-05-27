@@ -245,14 +245,3 @@ class DUVParser:
         if "runner=" in href:
             runner_id = int(href.split("runner=")[1].split("&")[0])
         return (runner_name, runner_id)
-
-def main() -> None:
-    """Smoke-test the fetcher against VT100 2024 (DUV event 110321)."""
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    fetcher = DUVFetcher()
-    html = fetcher.fetch_event(event_id=110321)
-    logger.info("Received %d characters of HTML", len(html))
-
-
-if __name__ == "__main__":
-    main()
