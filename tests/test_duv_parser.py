@@ -9,6 +9,7 @@ from vt100_data_hub.duv import DUVParser
 
 FIXTURE_2024_PATH = Path(__file__).parent / "fixtures" / "duv_2024_100m.html"
 FIXTURE_2017_PATH = Path(__file__).parent / "fixtures" / "duv_2017_100m.html"
+FIXTURE_2018_100K_PATH = Path(__file__).parent / "fixtures" / "duv_2018_100k.html"
 
 
 class TestParseFirstFinisher:
@@ -170,3 +171,42 @@ class TestParseAllFinishers2017:
         parser = DUVParser()
         results = parser.parse_all_finishers(self._load_fixture(), year=2017, distance="100M")
         assert all(r.year == 2017 for r in results)
+
+
+class TestParseAllFinishers2018100K:
+    """Tests confirming the parser handles DUV's '#NA' category marker.
+
+    The 2018 100K page has three finishers (ranks 20, 27, 54) whose
+    category is '#NA' and whose rank_category cell is empty. These
+    tests guard against regressions in the empty-cell handling.
+    """
+
+    def _load_fixture(self) -> str:
+        """Read the saved 2018 100K HTML fixture."""
+        return FIXTURE_2018_100K_PATH.read_text(encoding="utf-8")
+
+    def test_returns_expected_finisher_count(self) -> None:
+        """The 2018 100K fixture should yield 67 finishers."""
+        parser = DUVParser()
+        results = parser.parse_all_finishers(
+            self._load_fixture(), year=2018, distance="100K"
+        )
+        assert len(results) == 67
+
+    def test_na_category_becomes_none(self) -> None:
+        """A finisher with DUV category '#NA' should have category=None."""
+        parser = DUVParser()
+        results = parser.parse_all_finishers(
+            self._load_fixture(), year=2018, distance="100K"
+        )
+        carrier = next(r for r in results if r.runner_name == "Carrier, Pierre-Alain")
+        assert carrier.category is None
+
+    def test_empty_rank_category_becomes_none(self) -> None:
+        """A finisher with empty rank_category cell should have rank_category=None."""
+        parser = DUVParser()
+        results = parser.parse_all_finishers(
+            self._load_fixture(), year=2018, distance="100K"
+        )
+        carrier = next(r for r in results if r.runner_name == "Carrier, Pierre-Alain")
+        assert carrier.rank_category is None
