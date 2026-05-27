@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from populate_database import DatabasePopulator
+from vt100_data_hub.race_result import RaceResult
 
 FIXTURE_2024_100M_PATH = Path(__file__).parent / "fixtures" / "duv_2024_100m.html"
 
@@ -77,3 +78,32 @@ class TestPopulateOne:
         loaded = populator.storage.load_all_results()
         assert len(loaded) == 255
         assert loaded[0].runner_name == "Gage, Sarah"
+
+
+class TestPopulateAllClearsExistingData:
+    """Tests that populate_all clears the table first (idempotent re-runs)."""
+
+    def test_pre_existing_row_is_removed(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        """A row inserted before populate_all should not survive the run."""
+        monkeypatch.setattr("populate_database.DUVFetcher", FakeFetcher)
+        populator = DatabasePopulator(
+            db_path=tmp_path / "test.db",
+            polite_delay_seconds=0.0,
+        )
+        populator.storage.create_schema()
+        populator.storage.save_result(
+            RaceResult(
+                year=1999,
+                distance="100M",
+                runner_name="Ghost, Pre-existing",
+                status="FINISH",
+            )
+        )
+        populator.populate_all()
+        loaded = populator.storage.load_all_results()
+        names = {r.runner_name for r in loaded}
+        assert "Ghost, Pre-existing" not in names
