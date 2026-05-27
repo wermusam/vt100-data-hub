@@ -13,8 +13,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from vt100_data_hub.duv_events import Distance, DUVEventRegistry
 from vt100_data_hub.duv import DUVFetcher
+from vt100_data_hub.duv_events import Distance, DUVEventRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -25,20 +25,18 @@ class FixtureSaver:
     """Save DUV event HTML pages to the tests/fixtures/ directory.
 
     Attributes:
+        fixtures_dir: The directory where HTML fixture files are written.
         fetcher: A DUVFetcher used to retrieve event pages.
         registry: A DUVEventRegistry that knows the event IDs.
-        fixtures_dir: The directory where HTML fixture files are written.
     """
 
     def __init__(
         self,
-        fetcher: DUVFetcher,
-        registry: DUVEventRegistry,
         fixtures_dir: Path = FIXTURES_DIR,
     ) -> None:
-        self.fetcher = fetcher
-        self.registry = registry
         self.fixtures_dir = fixtures_dir
+        self.fetcher = DUVFetcher()
+        self.registry = DUVEventRegistry()
 
     def fixture_path(self, year: int, distance: Distance) -> Path:
         """Return the path where a given fixture file should be written.
@@ -71,17 +69,15 @@ class FixtureSaver:
         logger.info("Saved %d chars to %s", len(html), path)
         return path
 
+    def run(self) -> None:
+        """Configure logging and save the default set of fixtures.
 
-def main() -> None:
-    """Save the 2024 100M and 2017 100M fixtures as test data."""
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
-    saver = FixtureSaver(
-        fetcher=DUVFetcher(),
-        registry=DUVEventRegistry(),
-    )
-    saver.save_one(year=2024, distance="100M")
-    saver.save_one(year=2017, distance="100M")
+        Entry point for command-line use.
+        """
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
+        self.save_one(year=2024, distance="100M")
+        self.save_one(year=2017, distance="100M")
 
 
 if __name__ == "__main__":
-    main()
+    FixtureSaver().run()
