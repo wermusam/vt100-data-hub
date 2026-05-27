@@ -52,6 +52,7 @@ class ResultStorage:
             """
         )
         self.connection.commit()
+        logger.info("Created race_results table")
 
     def save_result(self, result: RaceResult) -> None:
         """Insert one RaceResult and commit immediately.
@@ -74,6 +75,7 @@ class ResultStorage:
         for result in results:
             self._insert_result(result)
         self.connection.commit()
+        logger.info("Saved %d race results", len(results))
 
     def load_all_results(self) -> list[RaceResult]:
         """Return every row in race_results as RaceResult objects.
