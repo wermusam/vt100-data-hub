@@ -72,6 +72,9 @@ class DatabasePopulator:
     def populate_all(self) -> int:
         """Populate every edition in the registry.
 
+        Clears any existing race_results before populating, so re-running
+        produces a clean dataset every time.
+
         Creates the schema first (idempotent), then loops every available
         edition with a polite delay between fetches.
 
@@ -79,6 +82,8 @@ class DatabasePopulator:
             Total number of finishers saved across all editions.
         """
         self.storage.create_schema()
+        self.connection.execute("DELETE FROM race_results")
+        self.connection.commit()
         total = 0
         for year, distance in self.registry.available_editions():
             count = self.populate_one(year, distance)
