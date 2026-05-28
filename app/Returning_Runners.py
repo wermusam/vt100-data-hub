@@ -15,7 +15,7 @@ from vt100_data_hub.queries import RunnerQueries
 DB_PATH = Path(__file__).parent.parent / "data" / "vt100.db"
 
 
-class DataHubApp:
+class ReturningRunnersPage:
     """The Vermont 100 Data Hub Streamlit application.
 
     Attributes:
@@ -33,7 +33,7 @@ class DataHubApp:
             layout="wide",
         )
         st.title("Vermont 100 Data Hub")
-        st.subheader("Returning Runners — the 4-of-8 list")
+        st.subheader("Returning Runners")
 
         st.sidebar.header("Filters")
         distance = st.sidebar.radio(
@@ -58,11 +58,8 @@ class DataHubApp:
         )
 
         st.markdown(
-            f"This page lists every runner who has finished the Vermont 100 "
-            f"**{distance}** at least **{n}** times in the last **{window}** "
-            f"editions held. The race director uses this for the 4-of-8 "
-            f"early-entry rule. (Cancelled years 2020, 2021, and 2023 are "
-            f"excluded — only races actually held count.)"
+            f"The table shows runners with **{n}+** finishes in the last "
+            f"**{window}** editions held."
         )
 
         with st.expander("How to read this page"):
@@ -138,4 +135,4 @@ class DataHubApp:
         )
 
 
-DataHubApp().render()
+ReturningRunnersPage().render()
