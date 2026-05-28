@@ -91,12 +91,22 @@ class PacePlannerPage:
                 "Aid Station": row.station_name,
                 "Mile": row.mile,
                 "Section Distance": round(row.section_distance_miles, 1),
-                "Cutoff Close": self._format_time(row.cutoff_close_time),
+                "Cutoff Close": self._format_time_with_day(
+                    row.cutoff_close_time,
+                    row.cutoff_minutes_from_start,
+                    start_hour,
+                    start_minute,
+                ),
                 "Time Window": self._format_buffer(row.cutoff_window_minutes),
                 "Your Pace": self._format_pace(
                     row.your_section_pace_min_per_mile
                 ),
-                "Your Target Arrival": self._format_time(row.target_arrival_time),
+                "Your Target Arrival": self._format_time_with_day(
+                    row.target_arrival_time,
+                    row.target_arrival_minutes_from_start,
+                    start_hour,
+                    start_minute,
+                ),
                 "Buffer": self._format_buffer(row.buffer_minutes),
             }
             for row in plan.rows
@@ -134,6 +144,22 @@ class PacePlannerPage:
         hour_12 = t.hour if 1 <= t.hour <= 12 else (t.hour - 12 if t.hour > 12 else 12)
         am_pm = "AM" if t.hour < 12 else "PM"
         return f"{hour_12}:{t.minute:02d} {am_pm}"
+
+    def _format_time_with_day(
+        self,
+        t: time,
+        minutes_from_start: float,
+        start_hour: int,
+        start_minute: int,
+    ) -> str:
+        """Format a time and add '(next day)' if the arrival has crossed midnight."""
+        start_minutes_of_day = start_hour * 60 + start_minute
+        total_clock_minutes = start_minutes_of_day + int(round(minutes_from_start))
+        days_after_start = total_clock_minutes // (24 * 60)
+        base = self._format_time(t)
+        if days_after_start >= 1:
+            return f"{base} (next day)"
+        return base
 
     def _format_pace(self, minutes: float) -> str:
         """Format a pace in minutes-per-mile as 'MM:SS/mi'."""
