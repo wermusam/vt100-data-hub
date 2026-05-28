@@ -129,3 +129,174 @@ class TestRunnersWithNFinishes:
         )
         names = [row[0] for row in results]
         assert "Ghost, Anonymous" not in names
+
+    def test_returns_years_list_for_qualifier(self) -> None:
+        """Alice (5 finishes) should have her years listed in the result."""
+        queries = self._make_queries_with_data()
+        results = queries.runners_with_n_finishes(
+            n=4, distance="100M", last_n_editions=8
+        )
+        alice_row = next(r for r in results if r[0] == "Smith, Alice")
+        years = sorted(int(y) for y in alice_row[3].split(","))
+        assert years == [2015, 2016, 2017, 2018, 2019]
+
+
+class TestRunnersWhoDidBoth:
+    """Tests for RunnerQueries.runners_who_did_both_distances.
+
+    Test data:
+    - Aria (DUV 2001): 3 100M finishes only (single distance)
+    - Bo (DUV 2002): 2 100M finishes + 1 100K finish (crossover, total 3)
+    - Cleo (DUV 2003): 2 100K finishes only (single distance)
+    - Dax (DUV 2004): 5 100M finishes + 3 100K finishes (crossover, total 8)
+    - Ghost (no DUV): 1 100M + 1 100K (crossover but no ID — excluded)
+    """
+
+    def _make_queries_with_data(self) -> RunnerQueries:
+        """Build a RunnerQueries with crossover-specific test data."""
+        connection = sqlite3.connect(":memory:")
+        storage = ResultStorage(connection)
+        storage.create_schema()
+        storage.save_results(self._test_data())
+        return RunnerQueries(connection=connection, registry=DUVEventRegistry())
+
+    def _test_data(self) -> list[RaceResult]:
+        """Build the list of fake finishers for crossover tests."""
+        results: list[RaceResult] = []
+        for year in [2015, 2016, 2017]:
+            results.append(
+                RaceResult(
+                    year=year,
+                    distance="100M",
+                    runner_name="Smith, Aria",
+                    status="FINISH",
+                    duv_runner_id=2001,
+                    finish_time=timedelta(hours=24),
+                )
+            )
+        for year in [2015, 2016]:
+            results.append(
+                RaceResult(
+                    year=year,
+                    distance="100M",
+                    runner_name="Jones, Bo",
+                    status="FINISH",
+                    duv_runner_id=2002,
+                    finish_time=timedelta(hours=25),
+                )
+            )
+        results.append(
+            RaceResult(
+                year=2017,
+                distance="100K",
+                runner_name="Jones, Bo",
+                status="FINISH",
+                duv_runner_id=2002,
+                finish_time=timedelta(hours=12),
+            )
+        )
+        for year in [2015, 2016]:
+            results.append(
+                RaceResult(
+                    year=year,
+                    distance="100K",
+                    runner_name="Lee, Cleo",
+                    status="FINISH",
+                    duv_runner_id=2003,
+                    finish_time=timedelta(hours=13),
+                )
+            )
+        for year in [2015, 2016, 2017, 2018, 2019]:
+            results.append(
+                RaceResult(
+                    year=year,
+                    distance="100M",
+                    runner_name="Park, Dax",
+                    status="FINISH",
+                    duv_runner_id=2004,
+                    finish_time=timedelta(hours=22),
+                )
+            )
+        for year in [2015, 2016, 2017]:
+            results.append(
+                RaceResult(
+                    year=year,
+                    distance="100K",
+                    runner_name="Park, Dax",
+                    status="FINISH",
+                    duv_runner_id=2004,
+                    finish_time=timedelta(hours=11),
+                )
+            )
+        results.append(
+            RaceResult(
+                year=2015,
+                distance="100M",
+                runner_name="Ghost, Anon",
+                status="FINISH",
+                duv_runner_id=None,
+                finish_time=timedelta(hours=27),
+            )
+        )
+        results.append(
+            RaceResult(
+                year=2016,
+                distance="100K",
+                runner_name="Ghost, Anon",
+                status="FINISH",
+                duv_runner_id=None,
+                finish_time=timedelta(hours=14),
+            )
+        )
+        return results
+
+    def test_returns_only_crossover_runners(self) -> None:
+        """Bo and Dax have both distances; Aria and Cleo don't."""
+        queries = self._make_queries_with_data()
+        results = queries.runners_who_did_both_distances()
+        names = [row[0] for row in results]
+        assert "Jones, Bo" in names
+        assert "Park, Dax" in names
+        assert "Smith, Aria" not in names
+        assert "Lee, Cleo" not in names
+
+    def test_sorts_by_total_finishes_descending(self) -> None:
+        """Dax (8 total) should appear before Bo (3 total)."""
+        queries = self._make_queries_with_data()
+        results = queries.runners_who_did_both_distances()
+        names_in_order = [row[0] for row in results]
+        dax_index = names_in_order.index("Park, Dax")
+        bo_index = names_in_order.index("Jones, Bo")
+        assert dax_index < bo_index
+
+    def test_excludes_runners_without_duv_id(self) -> None:
+        """Ghost has both distances but no DUV ID — should not appear."""
+        queries = self._make_queries_with_data()
+        results = queries.runners_who_did_both_distances()
+        names = [row[0] for row in results]
+        assert "Ghost, Anon" not in names
+
+    def test_returns_correct_counts_per_distance(self) -> None:
+        """Dax should have 5 100M finishes and 3 100K finishes."""
+        queries = self._make_queries_with_data()
+        results = queries.runners_who_did_both_distances()
+        dax_row = next(r for r in results if r[0] == "Park, Dax")
+        assert dax_row[1] == 5
+        assert dax_row[2] == 3
+
+    def test_returns_years_lists_per_distance(self) -> None:
+        """Dax's 100M and 100K year lists should match what was inserted."""
+        queries = self._make_queries_with_data()
+        results = queries.runners_who_did_both_distances()
+        dax_row = next(r for r in results if r[0] == "Park, Dax")
+        years_100m = sorted(int(y) for y in dax_row[3].split(","))
+        years_100k = sorted(int(y) for y in dax_row[4].split(","))
+        assert years_100m == [2015, 2016, 2017, 2018, 2019]
+        assert years_100k == [2015, 2016, 2017]
+
+    def test_returns_latest_year_across_both_distances(self) -> None:
+        """Dax's latest year should be 2019 (his most recent 100M finish)."""
+        queries = self._make_queries_with_data()
+        results = queries.runners_who_did_both_distances()
+        dax_row = next(r for r in results if r[0] == "Park, Dax")
+        assert dax_row[5] == 2019
