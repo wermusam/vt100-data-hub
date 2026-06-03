@@ -5,9 +5,11 @@ from __future__ import annotations
 from datetime import time
 from pathlib import Path
 
+import altair as alt
 import streamlit as st
 
 from vt100_data_hub.cutoffs import CutoffSchedule
+from vt100_data_hub.formatting import DisplayFormatters
 from vt100_data_hub.pacing import PacePlan
 
 CUTOFFS_100M_PATH = (
@@ -36,6 +38,14 @@ class PacePlannerPage:
 
     def render(self) -> None:
         """Render the pace planner page."""
+        st.markdown(
+            "<style>"
+            '[data-testid="stElementToolbar"]{display:none;}'
+            '[data-testid="StyledFullScreenButton"]{display:none;}'
+            'button[title="View fullscreen"]{display:none;}'
+            "</style>",
+            unsafe_allow_html=True,
+        )
         st.title("Vermont 100 Data Hub")
         st.subheader("Pace Planner")
         st.markdown(
@@ -48,8 +58,8 @@ class PacePlannerPage:
         goal_label = st.select_slider(
             "Goal finish time",
             options=goal_options,
-            value="30h 00m",
-            help="Target time to finish. Default 30h 00m is the official race cutoff.",
+            value="28h 00m",
+            help="Target time to finish. The official race cutoff is 30h 00m.",
         )
         goal_hours = self._parse_goal_label(goal_label)
 
@@ -86,6 +96,8 @@ class PacePlannerPage:
             f"{self._format_buffer(tightest.buffer_minutes)}"
         )
 
+        self._render_chart(plan, start_hour, start_minute)
+
         table_data = [
             {
                 "Aid Station": row.station_name,
@@ -111,7 +123,14 @@ class PacePlannerPage:
             }
             for row in plan.rows
         ]
-        st.dataframe(table_data, hide_index=True, width="stretch")
+        st.dataframe(
+            table_data,
+            hide_index=True,
+            width="stretch",
+            column_config={
+                "Section Distance": st.column_config.NumberColumn(format="%.1f"),
+            },
+        )
 
         st.divider()
 
@@ -138,6 +157,145 @@ class PacePlannerPage:
         hours = int(hours_part.rstrip("h"))
         minutes = int(minutes_part.rstrip("m"))
         return hours + minutes / 60.0
+
+    def _render_chart(
+        self, plan: PacePlan, start_hour: int, start_minute: int
+    ) -> None:
+        """Render the cutoff-vs-pace-plan chart using Altair.
+
+        Purple line = when each aid station closes (the wall). Blue line =
+        when you plan to arrive. Both appear in a line legend. The dots on
+        the blue line are colored by how much cushion you have, in a separate
+        cushion legend (red/amber/green). Two dashed horizontal lines mark
+        the race time limit (purple) and your goal (blue). Hovering a station
+        shows clock times and cushion, never raw decimals.
+        """
+        formatter = DisplayFormatters()
+        point_data = []
+        line_data = []
+        for row in plan.rows:
+            cutoff_hours = round(row.cutoff_minutes_from_start / 60.0, 2)
+            target_hours = round(row.target_arrival_minutes_from_start / 60.0, 2)
+            shared = {
+                "Mile": row.mile,
+                "Station": row.station_name,
+                "CutoffClock": self._format_time_with_day(
+                    row.cutoff_close_time,
+                    row.cutoff_minutes_from_start,
+                    start_hour,
+                    start_minute,
+                ),
+                "TargetClock": self._format_time_with_day(
+                    row.target_arrival_time,
+                    row.target_arrival_minutes_from_start,
+                    start_hour,
+                    start_minute,
+                ),
+                "BufferLabel": self._format_buffer(row.buffer_minutes),
+            }
+            point_data.append(
+                {
+                    **shared,
+                    "Target": target_hours,
+                    "Cushion": formatter.buffer_category(row.buffer_minutes),
+                }
+            )
+            line_data.append(
+                {
+                    **shared,
+                    "Hours": cutoff_hours,
+                    "Line": "Cutoff",
+                    "Clock": shared["CutoffClock"],
+                }
+            )
+            line_data.append(
+                {
+                    **shared,
+                    "Hours": target_hours,
+                    "Line": "Goal",
+                    "Clock": shared["TargetClock"],
+                }
+            )
+
+        total_cutoff_hours = round(
+            plan.rows[-1].cutoff_minutes_from_start / 60.0, 2
+        )
+        station_tooltip = [
+            alt.Tooltip("Station:N", title="Aid Station"),
+            alt.Tooltip("CutoffClock:N", title="Cutoff closes"),
+            alt.Tooltip("TargetClock:N", title="Your arrival"),
+            alt.Tooltip("BufferLabel:N", title="Cutoff cushion"),
+        ]
+        line_tooltip = [
+            alt.Tooltip("Station:N", title="Aid Station"),
+            alt.Tooltip("Line:N", title="Line"),
+            alt.Tooltip("Clock:N", title="Time"),
+        ]
+
+        line_scale = alt.Scale(
+            domain=["Cutoff", "Goal"],
+            range=["#7B1FA2", "#1565C0"],
+        )
+        lines = (
+            alt.Chart(alt.Data(values=line_data))
+            .mark_line(strokeWidth=2.5, point=alt.OverlayMarkDef(size=45))
+            .encode(
+                x=alt.X("Mile:Q", title="Mile"),
+                y=alt.Y("Hours:Q", title="Hours elapsed since race start"),
+                color=alt.Color("Line:N", title="Times", scale=line_scale),
+                tooltip=line_tooltip,
+            )
+        )
+
+        cushion_scale = alt.Scale(
+            domain=[
+                "Tight (under 30m)",
+                "Caution (30m-1h)",
+                "Comfortable (over 1h)",
+            ],
+            range=["#C62828", "#F9A825", "#2E7D32"],
+        )
+        target_points = (
+            alt.Chart(alt.Data(values=point_data))
+            .mark_point(filled=True, size=95)
+            .encode(
+                x="Mile:Q",
+                y="Target:Q",
+                color=alt.Color("Cushion:N", title="Cutoff Cushion", scale=cushion_scale),
+                tooltip=station_tooltip,
+            )
+        )
+
+        limit_rule = (
+            alt.Chart(alt.Data(values=[{"y": total_cutoff_hours}]))
+            .mark_rule(color="#7B1FA2", strokeDash=[6, 4], strokeWidth=1.5)
+            .encode(y="y:Q")
+        )
+        goal_rule = (
+            alt.Chart(alt.Data(values=[{"y": round(plan.goal_hours, 2)}]))
+            .mark_rule(color="#1565C0", strokeDash=[6, 4], strokeWidth=1.5)
+            .encode(y="y:Q")
+        )
+
+        chart = (
+            (limit_rule + goal_rule + lines + target_points)
+            .resolve_scale(color="independent")
+            .properties(
+                height=380,
+                title=alt.TitleParams(
+                    text="Your Pace Plan vs the Cutoffs",
+                    subtitle="Stay under the purple line. Blue is your plan.",
+                    anchor="middle",
+                ),
+            )
+            .configure_axis(grid=True, gridOpacity=0.4, gridColor="#5A7D2A")
+        )
+        st.altair_chart(chart, width="stretch")
+        st.caption(
+            "Hover a station for its cutoff, your arrival, and cushion. "
+            "Dot color: red under 30 min, amber 30 min to 1 hour, green "
+            "over 1 hour."
+        )
 
     def _format_time(self, t: time) -> str:
         """Format a time of day as '6:15 AM'."""

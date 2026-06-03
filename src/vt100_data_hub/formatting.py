@@ -25,3 +25,20 @@ class DisplayFormatters:
             last, first = name.split(", ", 1)
             return f"{first} {last}"
         return name
+
+    def buffer_category(self, minutes: float) -> str:
+        """Bucket a buffer (minutes) into a cushion category for color coding.
+
+        Args:
+            minutes: Buffer in minutes (cutoff close minus target arrival).
+                Negative means the goal time misses that cutoff.
+
+        Returns:
+            One of "Tight (under 30m)", "Caution (30m-1h)", or
+            "Comfortable (over 1h)".
+        """
+        if minutes < 30:
+            return "Tight (under 30m)"
+        if minutes <= 60:
+            return "Caution (30m-1h)"
+        return "Comfortable (over 1h)"
