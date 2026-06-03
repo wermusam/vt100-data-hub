@@ -5,7 +5,11 @@ from __future__ import annotations
 from datetime import time
 from pathlib import Path
 
-import altair as alt
+# Imported for its side effect: pandas must be fully initialized before
+# Plotly's lazy pandas check runs while rendering the chart, or Plotly 6 with
+# pandas 3 raises a circular-import error. Not referenced directly here.
+import pandas  # noqa: F401
+import plotly.graph_objects as go
 import streamlit as st
 
 from vt100_data_hub.cutoffs import CutoffSchedule
@@ -128,6 +132,7 @@ class PacePlannerPage:
             hide_index=True,
             width="stretch",
             column_config={
+                "Mile": st.column_config.NumberColumn(format="%.1f"),
                 "Section Distance": st.column_config.NumberColumn(format="%.1f"),
             },
         )
@@ -161,140 +166,186 @@ class PacePlannerPage:
     def _render_chart(
         self, plan: PacePlan, start_hour: int, start_minute: int
     ) -> None:
-        """Render the cutoff-vs-pace-plan chart using Altair.
+        """Render the cutoff-vs-pace-plan chart with Plotly.
 
         Purple line = when each aid station closes (the wall). Blue line =
-        when you plan to arrive. Both appear in a line legend. The dots on
-        the blue line are colored by how much cushion you have, in a separate
-        cushion legend (red/amber/green). Two dashed horizontal lines mark
-        the race time limit (purple) and your goal (blue). Hovering a station
-        shows clock times and cushion, never raw decimals.
+        when you plan to arrive. The dots on the blue line are colored by how
+        much cushion you have before each cutoff (red/amber/green). Two dashed
+        horizontal lines mark the race time limit (purple) and your goal
+        (blue). Drag a box to zoom, double-click to reset; hovering a station
+        shows clock times and cushion.
         """
         formatter = DisplayFormatters()
-        point_data = []
-        line_data = []
-        for row in plan.rows:
-            cutoff_hours = round(row.cutoff_minutes_from_start / 60.0, 2)
-            target_hours = round(row.target_arrival_minutes_from_start / 60.0, 2)
-            shared = {
-                "Mile": row.mile,
-                "Station": row.station_name,
-                "CutoffClock": self._format_time_with_day(
-                    row.cutoff_close_time,
-                    row.cutoff_minutes_from_start,
-                    start_hour,
-                    start_minute,
-                ),
-                "TargetClock": self._format_time_with_day(
-                    row.target_arrival_time,
-                    row.target_arrival_minutes_from_start,
-                    start_hour,
-                    start_minute,
-                ),
-                "BufferLabel": self._format_buffer(row.buffer_minutes),
-            }
-            point_data.append(
-                {
-                    **shared,
-                    "Target": target_hours,
-                    "Cushion": formatter.buffer_category(row.buffer_minutes),
-                }
+        miles = [row.mile for row in plan.rows]
+        cutoff_hours = [
+            round(row.cutoff_minutes_from_start / 60.0, 2) for row in plan.rows
+        ]
+        target_hours = [
+            round(row.target_arrival_minutes_from_start / 60.0, 2)
+            for row in plan.rows
+        ]
+        names = [row.station_name for row in plan.rows]
+        cutoff_clocks = [
+            self._format_time_with_day(
+                row.cutoff_close_time,
+                row.cutoff_minutes_from_start,
+                start_hour,
+                start_minute,
             )
-            line_data.append(
-                {
-                    **shared,
-                    "Hours": cutoff_hours,
-                    "Line": "Cutoff",
-                    "Clock": shared["CutoffClock"],
-                }
+            for row in plan.rows
+        ]
+        target_clocks = [
+            self._format_time_with_day(
+                row.target_arrival_time,
+                row.target_arrival_minutes_from_start,
+                start_hour,
+                start_minute,
             )
-            line_data.append(
-                {
-                    **shared,
-                    "Hours": target_hours,
-                    "Line": "Goal",
-                    "Clock": shared["TargetClock"],
-                }
+            for row in plan.rows
+        ]
+        buffers = [self._format_buffer(row.buffer_minutes) for row in plan.rows]
+        cushions = [
+            formatter.buffer_category(row.buffer_minutes) for row in plan.rows
+        ]
+
+        figure = go.Figure()
+
+        # Cutoff line (purple): hover shows the station and its cutoff only.
+        figure.add_trace(
+            go.Scatter(
+                x=miles,
+                y=cutoff_hours,
+                mode="lines+markers",
+                name="Cutoff",
+                legendgroup="times",
+                legendgrouptitle_text="Times",
+                line={"color": "#7B1FA2", "width": 2.5},
+                marker={"color": "#7B1FA2", "size": 7},
+                customdata=[[n, c] for n, c in zip(names, cutoff_clocks)],
+                hovertemplate=(
+                    "<b>%{customdata[0]}</b><br>"
+                    "Cutoff closes: %{customdata[1]}<extra></extra>"
+                ),
+            )
+        )
+
+        # Goal line (blue): fills the cushion band down to the cutoff line
+        # above it. The cushion dots carry the hover detail.
+        figure.add_trace(
+            go.Scatter(
+                x=miles,
+                y=target_hours,
+                mode="lines",
+                name="Goal",
+                legendgroup="times",
+                line={"color": "#1565C0", "width": 2.5},
+                fill="tonexty",
+                fillcolor="rgba(46,125,50,0.12)",
+                hoverinfo="skip",
+            )
+        )
+
+        # Cushion dots on the goal line, one trace per category so each gets
+        # its own legend entry.
+        cushion_colors = {
+            "Tight (under 30m)": "#C62828",
+            "Caution (30m-1h)": "#F9A825",
+            "Comfortable (over 1h)": "#2E7D32",
+        }
+        # Always add all three categories (even when empty) so the legend
+        # stays stable as the goal slider changes which cushions appear.
+        for category, color in cushion_colors.items():
+            indices = [i for i, c in enumerate(cushions) if c == category]
+            xs = [miles[i] for i in indices]
+            ys = [target_hours[i] for i in indices]
+            custom = [
+                [names[i], cutoff_clocks[i], target_clocks[i], buffers[i]]
+                for i in indices
+            ]
+            figure.add_trace(
+                go.Scatter(
+                    x=xs or [None],
+                    y=ys or [None],
+                    mode="markers",
+                    name=category,
+                    legendgroup="cushion",
+                    legendgrouptitle_text="Cutoff Cushion",
+                    marker={
+                        "color": color,
+                        "size": 10,
+                        "line": {"color": "white", "width": 1},
+                    },
+                    customdata=custom or [[None, None, None, None]],
+                    hovertemplate=(
+                        "<b>%{customdata[0]}</b><br>"
+                        "Cutoff closes: %{customdata[1]}<br>"
+                        "Your arrival: %{customdata[2]}<br>"
+                        "Cutoff cushion: %{customdata[3]}<extra></extra>"
+                    ),
+                )
             )
 
         total_cutoff_hours = round(
             plan.rows[-1].cutoff_minutes_from_start / 60.0, 2
         )
-        station_tooltip = [
-            alt.Tooltip("Station:N", title="Aid Station"),
-            alt.Tooltip("CutoffClock:N", title="Cutoff closes"),
-            alt.Tooltip("TargetClock:N", title="Your arrival"),
-            alt.Tooltip("BufferLabel:N", title="Cutoff cushion"),
-        ]
-        line_tooltip = [
-            alt.Tooltip("Station:N", title="Aid Station"),
-            alt.Tooltip("Line:N", title="Line"),
-            alt.Tooltip("Clock:N", title="Time"),
-        ]
-
-        line_scale = alt.Scale(
-            domain=["Cutoff", "Goal"],
-            range=["#7B1FA2", "#1565C0"],
+        figure.add_hline(
+            y=total_cutoff_hours,
+            line_dash="dash",
+            line_color="#7B1FA2",
+            line_width=1.5,
         )
-        lines = (
-            alt.Chart(alt.Data(values=line_data))
-            .mark_line(strokeWidth=2.5, point=alt.OverlayMarkDef(size=45))
-            .encode(
-                x=alt.X("Mile:Q", title="Mile"),
-                y=alt.Y("Hours:Q", title="Hours elapsed since race start"),
-                color=alt.Color("Line:N", title="Times", scale=line_scale),
-                tooltip=line_tooltip,
-            )
+        figure.add_hline(
+            y=round(plan.goal_hours, 2),
+            line_dash="dash",
+            line_color="#1565C0",
+            line_width=1.5,
         )
 
-        cushion_scale = alt.Scale(
-            domain=[
-                "Tight (under 30m)",
-                "Caution (30m-1h)",
-                "Comfortable (over 1h)",
-            ],
-            range=["#C62828", "#F9A825", "#2E7D32"],
-        )
-        target_points = (
-            alt.Chart(alt.Data(values=point_data))
-            .mark_point(filled=True, size=95)
-            .encode(
-                x="Mile:Q",
-                y="Target:Q",
-                color=alt.Color("Cushion:N", title="Cutoff Cushion", scale=cushion_scale),
-                tooltip=station_tooltip,
-            )
+        tightest = min(plan.rows, key=lambda r: r.buffer_minutes)
+        figure.add_annotation(
+            x=tightest.mile,
+            y=round(tightest.target_arrival_minutes_from_start / 60.0, 2),
+            text=f"Tightest: {self._format_buffer(tightest.buffer_minutes)}",
+            showarrow=True,
+            arrowhead=2,
+            arrowcolor="#C62828",
+            ax=0,
+            ay=-40,
+            font={"size": 11, "color": "#C62828"},
         )
 
-        limit_rule = (
-            alt.Chart(alt.Data(values=[{"y": total_cutoff_hours}]))
-            .mark_rule(color="#7B1FA2", strokeDash=[6, 4], strokeWidth=1.5)
-            .encode(y="y:Q")
-        )
-        goal_rule = (
-            alt.Chart(alt.Data(values=[{"y": round(plan.goal_hours, 2)}]))
-            .mark_rule(color="#1565C0", strokeDash=[6, 4], strokeWidth=1.5)
-            .encode(y="y:Q")
-        )
-
-        chart = (
-            (limit_rule + goal_rule + lines + target_points)
-            .resolve_scale(color="independent")
-            .properties(
-                height=380,
-                title=alt.TitleParams(
-                    text="Your Pace Plan vs the Cutoffs",
-                    subtitle="Stay under the purple line. Blue is your plan.",
-                    anchor="middle",
+        figure.update_layout(
+            template="simple_white",
+            title={
+                "text": (
+                    "Your Pace Plan vs the Cutoffs<br>"
+                    "<sub>Stay under the purple line. Blue is your plan.</sub>"
                 ),
-            )
-            .configure_axis(grid=True, gridOpacity=0.4, gridColor="#5A7D2A")
+                "x": 0.5,
+                "xanchor": "center",
+            },
+            xaxis={
+                "title": "Mile",
+                "showgrid": True,
+                "gridcolor": "rgba(0,0,0,0.18)",
+                "dtick": 5,
+            },
+            yaxis={
+                "title": "Hours elapsed since race start",
+                "showgrid": True,
+                "gridcolor": "rgba(0,0,0,0.18)",
+                "dtick": 5,
+            },
+            height=440,
+            dragmode="zoom",
+            legend={"groupclick": "toggleitem"},
+            margin={"t": 80},
         )
-        st.altair_chart(chart, width="stretch")
+        st.plotly_chart(figure, width="stretch", config={"scrollZoom": True})
         st.caption(
-            "Hover a station for its cutoff, your arrival, and cushion. "
-            "Dot color: red under 30 min, amber 30 min to 1 hour, green "
-            "over 1 hour."
+            "Drag a box to zoom in; double-click to reset. Hover a station "
+            "for its cutoff, your arrival, and cushion. Dot color: red under "
+            "30 min, amber 30 min to 1 hour, green over 1 hour."
         )
 
     def _format_time(self, t: time) -> str:
