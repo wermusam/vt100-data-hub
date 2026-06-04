@@ -53,6 +53,37 @@ class CutoffSchedule:
         self.distance = distance
         self.stations = self._parse_csv(csv_path)
 
+    def cutoff_minutes_from_start(self, start_time: time) -> list[int]:
+        """Minutes from race start to each station's cutoff close.
+
+        Handles the course crossing midnight: when a station's clock time is
+        earlier than the previous station's, it is counted as the next day.
+        The last value is the race's total cutoff window (e.g., 1800 minutes
+        for the 100M's 4 AM start to 10 AM finish).
+
+        Args:
+            start_time: The race start time of day.
+
+        Returns:
+            One integer per station, in course order, giving minutes elapsed
+            from the start to that station's cutoff close.
+        """
+        start_of_day = start_time.hour * 60 + start_time.minute
+        minutes_from_start: list[int] = []
+        last_minutes_of_day = start_of_day
+        days_after_start = 0
+        for station in self.stations:
+            minutes_of_day = (
+                station.closes_time.hour * 60 + station.closes_time.minute
+            )
+            if minutes_of_day < last_minutes_of_day:
+                days_after_start += 1
+            last_minutes_of_day = minutes_of_day
+            minutes_from_start.append(
+                minutes_of_day - start_of_day + days_after_start * 24 * 60
+            )
+        return minutes_from_start
+
     def _parse_csv(self, csv_path: Path) -> list[AidStationCutoff]:
         """Read the CSV (with VT100's 3-row header) into AidStationCutoff objects.
 

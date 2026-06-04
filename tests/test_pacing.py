@@ -85,3 +85,207 @@ class TestPacePlan:
         plan = self._make_plan(goal_hours=30.0)
         first = plan.rows[0]
         assert first.cutoff_window_minutes == 135
+
+
+class TestPacePlanWithAidStationTime:
+    """Aid-station time on top of the goal.
+
+    The goal is your total finish at the average stop time, so a default plan
+    finishes exactly at the goal. Editing one stop beyond the average adds to
+    the total and shifts only the stations after it; changing the goal re-paces
+    the running and leaves the stop times alone.
+    """
+
+    def _make_plan(self, goal_hours: float, aid_minutes: float) -> PacePlan:
+        """Build a 2026 100M plan with a uniform average stop time."""
+        schedule = CutoffSchedule(
+            csv_path=CUTOFFS_2026_100M_PATH, distance="100M"
+        )
+        return PacePlan(
+            schedule=schedule,
+            goal_hours=goal_hours,
+            start_time=time(4, 0),
+            aid_station_minutes=aid_minutes,
+            nominal_aid_minutes=3.0,
+        )
+
+    def _edited_plan(
+        self, edit_index: int, minutes: float
+    ) -> tuple[PacePlan, PacePlan]:
+        """Return (baseline, edited) 28h plans with a 3-min average.
+
+        `edited` sets the stop at `edit_index` to `minutes`; everything else
+        stays at the 3-min average.
+        """
+        schedule = CutoffSchedule(
+            csv_path=CUTOFFS_2026_100M_PATH, distance="100M"
+        )
+        n = len(schedule.stations)
+        base_times = [3.0] * n
+        base_times[-1] = 0.0
+        baseline = PacePlan(
+            schedule=schedule,
+            goal_hours=28.0,
+            start_time=time(4, 0),
+            aid_station_minutes=3.0,
+            aid_minutes_per_station=base_times,
+            nominal_aid_minutes=3.0,
+        )
+        edited_times = list(base_times)
+        edited_times[edit_index] = minutes
+        edited = PacePlan(
+            schedule=schedule,
+            goal_hours=28.0,
+            start_time=time(4, 0),
+            aid_station_minutes=3.0,
+            aid_minutes_per_station=edited_times,
+            nominal_aid_minutes=3.0,
+        )
+        return baseline, edited
+
+    def test_default_plan_finishes_at_the_goal(self) -> None:
+        """28h with a uniform 3-min average finishes exactly at 28h (1680)."""
+        plan = self._make_plan(goal_hours=28.0, aid_minutes=3.0)
+        assert sum(row.aid_minutes for row in plan.rows) == 75.0
+        assert plan.rows[-1].target_arrival_minutes_from_start == 1680.0
+
+    def test_fewer_stops_than_nominal_finishes_early(self) -> None:
+        """No stops is 3 min under the nominal at all 25 stations, so the
+        finish lands 75 minutes early (1605 instead of 1680)."""
+        plan = self._make_plan(goal_hours=28.0, aid_minutes=0.0)
+        assert plan.rows[-1].target_arrival_minutes_from_start == 1605.0
+
+    def test_raising_the_average_adds_to_the_total(self) -> None:
+        """Raising the average is like editing every stop: 3 to 4 over 25
+        stations adds 25 minutes, and the running pace does not change."""
+        plan_3 = self._make_plan(goal_hours=28.0, aid_minutes=3.0)
+        plan_4 = self._make_plan(goal_hours=28.0, aid_minutes=4.0)
+        assert plan_3.rows[-1].target_arrival_minutes_from_start == 1680.0
+        assert plan_4.rows[-1].target_arrival_minutes_from_start == 1705.0
+        assert (
+            plan_4.rows[0].your_section_pace_min_per_mile
+            == plan_3.rows[0].your_section_pace_min_per_mile
+        )
+
+    def test_finish_line_has_no_stop(self) -> None:
+        """No aid-station time is spent at the finish line."""
+        plan = self._make_plan(goal_hours=28.0, aid_minutes=3.0)
+        assert plan.rows[-1].aid_minutes == 0.0
+
+    def test_departure_is_arrival_plus_aid(self) -> None:
+        """An intermediate station departs aid_minutes after arrival."""
+        plan = self._make_plan(goal_hours=28.0, aid_minutes=3.0)
+        first = plan.rows[0]
+        assert first.aid_minutes == 3.0
+        assert (
+            first.departure_minutes_from_start
+            == first.target_arrival_minutes_from_start + 3.0
+        )
+
+    def test_zero_aid_leaves_departure_equal_to_arrival(self) -> None:
+        """With no aid time, departure equals arrival at every station."""
+        plan = self._make_plan(goal_hours=28.0, aid_minutes=0.0)
+        for row in plan.rows:
+            assert (
+                row.departure_minutes_from_start
+                == row.target_arrival_minutes_from_start
+            )
+
+    def test_editing_one_stop_adds_one_minute_to_the_total(self) -> None:
+        """Bumping a 3-min stop to 4 makes the finish one minute later."""
+        baseline, edited = self._edited_plan(edit_index=5, minutes=4.0)
+        assert baseline.rows[-1].target_arrival_minutes_from_start == 1680.0
+        assert edited.rows[-1].target_arrival_minutes_from_start == 1681.0
+
+    def test_drop_bag_adds_only_the_extra_over_the_average(self) -> None:
+        """A 20-min drop bag over a 3-min average adds 17 to the total."""
+        _baseline, edited = self._edited_plan(edit_index=5, minutes=20.0)
+        assert edited.rows[-1].target_arrival_minutes_from_start == 1680.0 + 17.0
+
+    def test_editing_shifts_only_the_stations_after_it(self) -> None:
+        """A longer stop leaves earlier stations unchanged and shifts the later
+        ones by exactly the added minutes."""
+        baseline, edited = self._edited_plan(edit_index=5, minutes=33.0)
+        # 33 minus the 3-min average = 30 minutes added.
+        assert (
+            edited.rows[3].target_arrival_minutes_from_start
+            == baseline.rows[3].target_arrival_minutes_from_start
+        )
+        assert (
+            edited.rows[6].target_arrival_minutes_from_start
+            == baseline.rows[6].target_arrival_minutes_from_start + 30.0
+        )
+
+    def test_goal_change_repaces_running_and_keeps_stop_times(self) -> None:
+        """Changing only the goal keeps each stop's minutes and re-paces the
+        running, so each plan finishes at its own goal."""
+        plan_28 = self._make_plan(goal_hours=28.0, aid_minutes=3.0)
+        plan_29 = self._make_plan(goal_hours=29.0, aid_minutes=3.0)
+        assert plan_28.rows[-1].target_arrival_minutes_from_start == 1680.0
+        assert plan_29.rows[-1].target_arrival_minutes_from_start == 1740.0
+        for r28, r29 in zip(plan_28.rows, plan_29.rows):
+            assert r28.aid_minutes == r29.aid_minutes
+        assert (
+            plan_29.rows[0].your_section_pace_min_per_mile
+            > plan_28.rows[0].your_section_pace_min_per_mile
+        )
+
+    def test_goal_change_keeps_your_edits(self) -> None:
+        """Moving the goal after editing a stop keeps that edit and its extra:
+        a 20-min drop bag adds 17 minutes at any goal."""
+        schedule = CutoffSchedule(
+            csv_path=CUTOFFS_2026_100M_PATH, distance="100M"
+        )
+        n = len(schedule.stations)
+        times = [3.0] * n
+        times[-1] = 0.0
+        times[5] = 20.0
+        plan_28 = PacePlan(
+            schedule=schedule,
+            goal_hours=28.0,
+            start_time=time(4, 0),
+            aid_minutes_per_station=times,
+            nominal_aid_minutes=3.0,
+        )
+        plan_29 = PacePlan(
+            schedule=schedule,
+            goal_hours=29.0,
+            start_time=time(4, 0),
+            aid_minutes_per_station=times,
+            nominal_aid_minutes=3.0,
+        )
+        assert plan_28.rows[-1].target_arrival_minutes_from_start == 1680.0 + 17.0
+        assert plan_29.rows[-1].target_arrival_minutes_from_start == 1740.0 + 17.0
+        for r28, r29 in zip(plan_28.rows, plan_29.rows):
+            assert r28.aid_minutes == r29.aid_minutes
+
+    def test_finish_stop_is_zeroed_when_reading_stop_times(self) -> None:
+        """A value on the finish row is dropped to zero; ints become floats."""
+        assert PacePlan.stop_minutes_with_no_finish_stop([3, 4, 9]) == [
+            3.0,
+            4.0,
+            0.0,
+        ]
+
+    def test_modifying_a_table_time_flows_into_the_plan(self) -> None:
+        """Typing 20 at one stop, read back the way the page does it, lands that
+        stop at 20 and pushes the finish 17 minutes later."""
+        schedule = CutoffSchedule(
+            csv_path=CUTOFFS_2026_100M_PATH, distance="100M"
+        )
+        n = len(schedule.stations)
+        editor_rows = [{"Time at Station (min)": 3.0} for _ in range(n)]
+        editor_rows[5]["Time at Station (min)"] = 20.0
+        times = PacePlan.stop_minutes_with_no_finish_stop(
+            [row["Time at Station (min)"] for row in editor_rows]
+        )
+        assert times[-1] == 0.0
+        plan = PacePlan(
+            schedule=schedule,
+            goal_hours=28.0,
+            start_time=time(4, 0),
+            aid_minutes_per_station=times,
+            nominal_aid_minutes=3.0,
+        )
+        assert plan.rows[5].aid_minutes == 20.0
+        assert plan.rows[-1].target_arrival_minutes_from_start == 1680.0 + 17.0

@@ -50,3 +50,34 @@ class TestCutoffSchedule:
         last = schedule.stations[-1]
         assert last.name == "FINISH LINE"
         assert last.mileage == 100.0
+
+
+class TestCutoffMinutesFromStart:
+    """Tests for CutoffSchedule.cutoff_minutes_from_start."""
+
+    def _load_2026_100m(self) -> CutoffSchedule:
+        """Load the saved 2026 100M cutoff schedule."""
+        return CutoffSchedule(csv_path=CUTOFFS_2026_100M_PATH, distance="100M")
+
+    def test_first_station_window(self) -> None:
+        """Densmore Hill closes 6:15 AM = 135 minutes from a 4 AM start."""
+        schedule = self._load_2026_100m()
+        minutes = schedule.cutoff_minutes_from_start(time(4, 0))
+        assert minutes[0] == 135
+
+    def test_finish_is_30_hours_from_4am_start(self) -> None:
+        """The 100M finish (10 AM Sunday) is 1800 minutes from a 4 AM start."""
+        schedule = self._load_2026_100m()
+        minutes = schedule.cutoff_minutes_from_start(time(4, 0))
+        assert minutes[-1] == 1800
+
+    def test_handles_midnight_rollover(self) -> None:
+        """Camp 10 Bear returning closes 12:55 AM (next day) = 1255 minutes."""
+        schedule = self._load_2026_100m()
+        minutes = schedule.cutoff_minutes_from_start(time(4, 0))
+        returning_index = next(
+            i
+            for i, station in enumerate(schedule.stations)
+            if station.name == "Camp 10 Bear" and station.mileage == 69.7
+        )
+        assert minutes[returning_index] == 1255
