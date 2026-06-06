@@ -205,6 +205,54 @@ class PacePlan:
         return time(minute_of_day // 60, minute_of_day % 60)
 
     @staticmethod
+    def goal_minutes_from_running(
+        running_minutes: float, stop_minutes: list[float]
+    ) -> float:
+        """Total goal time = running time plus every aid-station stop.
+
+        This is the forward direction of the planner's core identity:
+        goal = running + stops. Editing a stop holds the running time and
+        moves the goal by the change, so a longer rest pushes the finish later.
+
+        Args:
+            running_minutes: Pure moving time over the whole course, in minutes.
+            stop_minutes: Time spent at each aid station, in minutes.
+
+        Returns:
+            The total goal finish time in minutes.
+        """
+        return running_minutes + sum(stop_minutes)
+
+    @staticmethod
+    def running_minutes_from_goal(
+        goal_minutes: float, stop_minutes: list[float]
+    ) -> float:
+        """Running time left once every aid-station stop is taken out of the goal.
+
+        This is the inverse of :meth:`goal_minutes_from_running`, used when the
+        runner drags the goal slider: the new goal is fixed and the stops are
+        held, so the running time (and therefore the pace) is what gives.
+
+        Args:
+            goal_minutes: Target total finish time, in minutes.
+            stop_minutes: Time spent at each aid station, in minutes.
+
+        Returns:
+            The moving time the runner has left, in minutes.
+
+        Raises:
+            ValueError: If the stops meet or exceed the goal, leaving no time
+                to actually run — an impossible plan.
+        """
+        running_minutes = goal_minutes - sum(stop_minutes)
+        if running_minutes <= 0:
+            raise ValueError(
+                "Aid-station stops meet or exceed the goal time; "
+                "no time left to run."
+            )
+        return running_minutes
+
+    @staticmethod
     def stop_minutes_with_no_finish_stop(minutes: list[float]) -> list[float]:
         """Normalize per-station stop minutes for use as a plan input.
 

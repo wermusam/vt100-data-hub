@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import time
 from pathlib import Path
 
+import pytest
+
 from vt100_data_hub.cutoffs import CutoffSchedule
 from vt100_data_hub.pacing import PacePlan
 
@@ -277,6 +279,25 @@ class TestPacePlanWithAidStationTime:
         assert plan_29.rows[-1].target_arrival_minutes_from_start == 1740.0 + 17.0
         for r28, r29 in zip(plan_28.rows, plan_29.rows):
             assert r28.aid_minutes == r29.aid_minutes
+
+    def test_goal_is_running_plus_stops(self) -> None:
+        """Goal time is simply running time plus every aid-station stop."""
+        assert PacePlan.goal_minutes_from_running(1500.0, [5.0, 5.0, 20.0]) == 1530.0
+
+    def test_running_is_goal_minus_stops(self) -> None:
+        """Dragging the goal holds the stops, so running time is the remainder."""
+        assert PacePlan.running_minutes_from_goal(1680.0, [5.0] * 24) == 1560.0
+
+    def test_goal_and_running_are_inverses(self) -> None:
+        """Solving running from a goal and rebuilding the goal returns the goal."""
+        stops = [5.0, 5.0, 30.0, 0.0]
+        running = PacePlan.running_minutes_from_goal(1700.0, stops)
+        assert PacePlan.goal_minutes_from_running(running, stops) == 1700.0
+
+    def test_running_from_goal_rejects_impossible_plan(self) -> None:
+        """Stops that eat the whole goal leave no time to run, which is invalid."""
+        with pytest.raises(ValueError):
+            PacePlan.running_minutes_from_goal(60.0, [40.0, 30.0])
 
     def test_finish_stop_is_zeroed_when_reading_stop_times(self) -> None:
         """A value on the finish row is dropped to zero; ints become floats."""
