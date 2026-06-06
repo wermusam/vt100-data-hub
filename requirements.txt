@@ -1,0 +1,12 @@
+# Dependencies for Streamlit Community Cloud.
+#
+# `-e .` installs the local package (src/vt100_data_hub) so the app's
+# `from vt100_data_hub import ...` lines resolve; it also pulls the runtime
+# dependencies declared in pyproject.toml. They are listed again below so the
+# deploy still works even if the editable install is skipped.
+-e .
+streamlit>=1.40.0
+plotly>=5.24.0
+pandas>=2.2.0
+beautifulsoup4>=4.14.3
+requests>=2.33.1
