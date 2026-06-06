@@ -136,7 +136,7 @@ class PacePlannerPage:
         st.caption(
             "⏱️ Spend **longer** at any stop and your **goal time slides later** "
             "by that much; spend **less** and it comes in **sooner**. Your "
-            "running pace stays the same — only the goal moves."
+            "running pace stays the same; only the goal moves."
         )
 
         # Per-station aid times live in session state so the table can edit
@@ -204,7 +204,7 @@ class PacePlannerPage:
         if verdict.makes_it:
             tight = verdict.tightest_row
             st.success(
-                f"✅ **You make it** — this plan clears every cutoff. Tightest "
+                f"✅ **You make it.** This plan clears every cutoff. Tightest "
                 f"is **{tight.station_name}** (mile {tight.mile}), "
                 f"{formatter.format_duration(tight.buffer_minutes)} to spare."
             )
@@ -225,7 +225,7 @@ class PacePlannerPage:
         self._render_chart(plan, start_hour, start_minute)
 
         st.markdown(
-            "**Aid station plan** — edit **Time at Station** for any stop "
+            "**Aid station plan.** Edit **Time at Station** for any stop "
             "(🎒 = drop bag). A longer stop shifts the stations after it."
         )
         if st.button("Reset all aid-station times to the average"):
