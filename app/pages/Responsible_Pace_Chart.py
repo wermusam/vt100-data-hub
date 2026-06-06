@@ -162,7 +162,7 @@ class PacePlannerPage:
             f"{formatter.format_duration(finish_row.target_arrival_minutes_from_start)}"
             f"</div>"
             f"<div style='font-size:0.8rem; color:#555; margin-top:-0.2rem;'>"
-            f"total time</div>"
+            f"goal time</div>"
             f"<div style='font-size:1.05rem;'>"
             f"{formatter.format_duration(moving_minutes)} running + "
             f"{formatter.format_duration(total_aid_minutes)} at aid stations</div>"
