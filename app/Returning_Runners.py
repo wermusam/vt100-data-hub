@@ -15,6 +15,48 @@ from vt100_data_hub.queries import RunnerQueries
 DB_PATH = Path(__file__).parent.parent / "data" / "vt100.db"
 
 
+@st.cache_data(show_spinner=False)
+def _load_qualifiers(
+    db_path: str, distance: str, n: int, window: int
+) -> list[tuple[str, int, int, str]]:
+    """Load runners with n+ finishes, cached per filter combination.
+
+    Opens its own connection and closes it in a finally block, so no SQLite
+    connection is leaked across Streamlit reruns.
+
+    Args:
+        db_path: Path to the SQLite database, as a string (cache key).
+        distance: "100M" or "100K".
+        n: Minimum finishes required.
+        window: Number of recent editions to count over.
+
+    Returns:
+        The query's (runner_name, finish_count, latest_year, years) rows.
+    """
+    connection = sqlite3.connect(db_path)
+    try:
+        queries = RunnerQueries(
+            connection=connection, registry=DUVEventRegistry()
+        )
+        return queries.runners_with_n_finishes(
+            n=n, distance=distance, last_n_editions=window
+        )
+    finally:
+        connection.close()
+
+
+@st.cache_data(show_spinner=False)
+def _total_finishers(db_path: str) -> int:
+    """Count every stored finisher, opening and closing its own connection."""
+    connection = sqlite3.connect(db_path)
+    try:
+        return connection.execute(
+            "SELECT COUNT(*) FROM race_results"
+        ).fetchone()[0]
+    finally:
+        connection.close()
+
+
 class ReturningRunnersPage:
     """The Vermont 100 Data Hub Streamlit application.
 
@@ -34,6 +76,14 @@ class ReturningRunnersPage:
         )
         st.title("Vermont 100 Data Hub")
         st.subheader("Returning Runners")
+
+        if not self.db_path.exists():
+            st.error(
+                "The results database is missing, so runner data can't be "
+                "loaded right now. If this was just deployed, make sure "
+                "`data/vt100.db` is included in the repository."
+            )
+            return
 
         st.sidebar.header("Filters")
         distance = st.sidebar.radio(
@@ -82,11 +132,7 @@ class ReturningRunnersPage:
             f"Counting these editions: {', '.join(str(y) for y in years_in_window)}"
         )
 
-        connection = sqlite3.connect(self.db_path)
-        queries = RunnerQueries(connection=connection, registry=registry)
-        results = queries.runners_with_n_finishes(
-            n=n, distance=distance, last_n_editions=window
-        )
+        results = _load_qualifiers(str(self.db_path), distance, n, window)
 
         formatter = DisplayFormatters()
 
@@ -122,9 +168,7 @@ class ReturningRunnersPage:
             )
 
         st.divider()
-        total = connection.execute(
-            "SELECT COUNT(*) FROM race_results"
-        ).fetchone()[0]
+        total = _total_finishers(str(self.db_path))
         last_updated = datetime.datetime.fromtimestamp(
             self.db_path.stat().st_mtime
         ).strftime("%B %d, %Y")

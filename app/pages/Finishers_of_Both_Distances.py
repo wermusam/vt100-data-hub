@@ -14,6 +14,31 @@ from vt100_data_hub.queries import RunnerQueries
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "vt100.db"
 
 
+@st.cache_data(show_spinner=False)
+def _load_crossover_runners(
+    db_path: str,
+) -> list[tuple[str, int, int, str, str, int]]:
+    """Load runners who finished both distances, cached and self-closing.
+
+    Opens its own connection and closes it in a finally block, so no SQLite
+    connection is leaked across Streamlit reruns.
+
+    Args:
+        db_path: Path to the SQLite database, as a string (cache key).
+
+    Returns:
+        The query's per-runner crossover rows.
+    """
+    connection = sqlite3.connect(db_path)
+    try:
+        queries = RunnerQueries(
+            connection=connection, registry=DUVEventRegistry()
+        )
+        return queries.runners_who_did_both_distances()
+    finally:
+        connection.close()
+
+
 class FinishersOfBothDistancesPage:
     """The Finishers of Both Distances page — runners with both 100M and 100K.
 
@@ -35,11 +60,15 @@ class FinishersOfBothDistancesPage:
             "2020, 2021, and 2023 are excluded)."
         )
 
-        connection = sqlite3.connect(self.db_path)
-        queries = RunnerQueries(
-            connection=connection, registry=DUVEventRegistry()
-        )
-        results = queries.runners_who_did_both_distances()
+        if not self.db_path.exists():
+            st.error(
+                "The results database is missing, so runner data can't be "
+                "loaded right now. If this was just deployed, make sure "
+                "`data/vt100.db` is included in the repository."
+            )
+            return
+
+        results = _load_crossover_runners(str(self.db_path))
 
         formatter = DisplayFormatters()
 
