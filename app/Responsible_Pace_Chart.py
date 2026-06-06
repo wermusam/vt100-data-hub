@@ -17,10 +17,10 @@ from vt100_data_hub.formatting import DisplayFormatters
 from vt100_data_hub.pacing import PacePlan
 
 CUTOFFS_100M_PATH = (
-    Path(__file__).parent.parent.parent / "data" / "cutoffs_2026_100m.csv"
+    Path(__file__).parent.parent / "data" / "cutoffs_2026_100m.csv"
 )
 CUTOFFS_100K_PATH = (
-    Path(__file__).parent.parent.parent / "data" / "cutoffs_2026_100k.csv"
+    Path(__file__).parent.parent / "data" / "cutoffs_2026_100k.csv"
 )
 
 # The stop time the goal is measured against. A goal finish assumes this many
@@ -48,6 +48,11 @@ class PacePlannerPage:
 
     def render(self) -> None:
         """Render the pace planner page."""
+        st.set_page_config(
+            page_title="Vermont 100 Data Hub",
+            page_icon="🏃",
+            layout="wide",
+        )
         st.markdown(
             "<style>"
             '[data-testid="stElementToolbar"]{display:none;}'
@@ -56,26 +61,49 @@ class PacePlannerPage:
             "</style>",
             unsafe_allow_html=True,
         )
-        st.markdown(
-            "<h1 style='text-align: center;'>Vermont 100 Data Hub</h1>",
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            "<h2 style='text-align: center;'>Responsible Pace Chart</h2>",
-            unsafe_allow_html=True,
-        )
+        st.title("Vermont 100 Responsible Pace Chart")
         st.markdown(
             "Set your goal finish time and your time at each aid station. "
             "The table shows your arrival, departure, and the cushion you'd "
             "have against every 2026 cutoff."
         )
+        with st.expander("How this works"):
+            st.markdown(
+                "**Goal finish time:** your target finish. A faster goal runs "
+                "every leg quicker and gives more cushion; the slowest setting "
+                "rides the cutoffs. It changes only your running pace, not your "
+                "stops.\n\n"
+                "**Aid station time:** the first 5 minutes at each stop are built "
+                "into the pace, so the default plan stays ahead of every cutoff. "
+                "Spend more than that and it adds to your finish and eats your "
+                "cushion (too much shows a red miss); spend less and you gain "
+                "cushion. A table edit affects that stop and the ones after it, "
+                "never before.\n\n"
+                "**The verdict** at the top says, in plain words, whether you "
+                "clear every cutoff and where it is tightest.\n\n"
+                "**Colors:** red means under 30 minutes of cushion, yellow "
+                "means 30 to 60 minutes, green means over an hour. The table "
+                "and the graph use the same colors."
+            )
 
         formatter = DisplayFormatters()
 
-        st.sidebar.header("Your Race")
-        distance = st.sidebar.radio(
-            "Distance", options=["100M", "100K"], index=0
+        distance = st.radio(
+            "Distance", options=["100M", "100K"], index=0, horizontal=True
         )
+        # Switching distance starts that distance fresh. Streamlit purges the
+        # goal and average widgets when they leave the screen but keeps the
+        # plain session values, so without this the two drift out of sync and
+        # produce a goal the runner never chose.
+        if st.session_state.get("last_distance") != distance:
+            for key in (
+                f"goal_slider_{distance}",
+                f"aid_times_{distance}",
+                f"aid_avg_{distance}",
+                f"avg_input_{distance}",
+            ):
+                st.session_state.pop(key, None)
+            st.session_state["last_distance"] = distance
         # VT100 start times are fixed by the race: 4:00 AM for the 100M,
         # 9:00 AM for the 100K (vermont100.com/race-details).
         start_hour, start_minute = (4, 0) if distance == "100M" else (9, 0)
@@ -86,38 +114,28 @@ class PacePlannerPage:
         )
         schedule = CutoffSchedule(csv_path=csv_path, distance=distance)
 
-        # Only offer goals up to this race's real time limit, so a runner
-        # can't pick an impossible finish. The slider steps every minute so it
-        # can slide smoothly to whatever total an edited stop produces.
+        # The goal slider is your target finish at the baseline stop. Its
+        # slowest setting is this race's cutoff; faster settings run every leg
+        # quicker and give more cushion. It steps every minute.
         total_cutoff_minutes = schedule.cutoff_minutes_from_start(start_time)[-1]
         min_minutes = 15 * 60 if distance == "100M" else 10 * 60
-        default_label = "28h 00m" if distance == "100M" else "20h 00m"
+        default_label = "28h 00m" if distance == "100M" else "23h 00m"
         goal_options = [
             formatter.format_hours(minutes / 60.0)
             for minutes in range(min_minutes, total_cutoff_minutes + 1, 1)
         ]
-        # The slider itself holds the goal (a keyed widget, so it stays put
-        # when the runner drags it). Stop edits and Reset move it by queueing a
-        # "pending" value that is applied here, before the widget is created —
-        # the only moment Streamlit lets a widget's value be set from code.
         goal_key = f"goal_slider_{distance}"
-        pending_key = f"pending_goal_{distance}"
-        note_key = f"last_note_{distance}"
-        if pending_key in st.session_state:
-            st.session_state[goal_key] = st.session_state.pop(pending_key)
         if goal_key not in st.session_state:
             st.session_state[goal_key] = default_label
         goal_label = st.select_slider(
             "Goal finish time",
             options=goal_options,
             key=goal_key,
-            on_change=self._on_goal_drag,
-            args=(distance,),
             help=(
-                "Your total finish time: running plus every aid-station stop. "
-                "Drag it to set a finish and your running pace adjusts. Editing "
-                "a stop below slides this instead, holding your pace. The race "
-                f"cutoff is {formatter.format_hours(total_cutoff_minutes / 60.0)}."
+                "Your target finish at the baseline stop. The slowest setting is "
+                f"the {formatter.format_hours(total_cutoff_minutes / 60.0)} cutoff; "
+                "faster settings run every leg quicker for more cushion. It does "
+                "not change your aid-station time."
             ),
         )
         goal_minutes = formatter.parse_hm_label(goal_label) * 60.0
@@ -138,62 +156,39 @@ class PacePlannerPage:
                 ),
             )
         st.caption(
-            "⏱️ Spend **longer** at any stop and your **goal time slides later** "
-            "by that much; spend **less** and it comes in **sooner**. Your "
-            "running pace stays the same; only the goal moves."
+            f"⏱️ The first {int(NOMINAL_AID_MINUTES)} minutes at each stop are "
+            "built into the pace, so the plan stays ahead of every cutoff. Spend "
+            "**more** than that and it adds to your finish and eats your cushion; "
+            "spend **less** and you gain cushion. The goal slider changes only "
+            "your running pace, never your stops."
         )
-        if st.session_state.get(note_key):
-            st.info(st.session_state[note_key])
 
         # Per-station aid times live in session state so the table can edit
         # individual stops; the finish line never has a stop. Changing the
-        # average rebuilds every station and slides the goal by the difference,
-        # which holds the running pace (goal = running + stops).
+        # average re-applies it to every station.
         station_count = len(schedule.stations)
         times_key = f"aid_times_{distance}"
         avg_key = f"aid_avg_{distance}"
         if (
             times_key not in st.session_state
             or len(st.session_state[times_key]) != station_count
+            or st.session_state.get(avg_key) != aid_minutes
         ):
             st.session_state[avg_key] = aid_minutes
             st.session_state[times_key] = PacePlan.stop_minutes_with_no_finish_stop(
                 [aid_minutes] * station_count
             )
-        elif st.session_state.get(avg_key) != aid_minutes:
-            new_times = PacePlan.stop_minutes_with_no_finish_stop(
-                [aid_minutes] * station_count
-            )
-            delta = sum(new_times) - sum(st.session_state[times_key])
-            st.session_state[pending_key] = self._slid_goal_label(
-                goal_minutes, delta, min_minutes, total_cutoff_minutes, formatter
-            )
-            st.session_state[avg_key] = aid_minutes
-            st.session_state[times_key] = new_times
-            st.session_state[note_key] = self._stop_change_note(
-                delta, "every aid station"
-            )
-            st.rerun()
 
-        # Goal = running + stops, so the running time is whatever is left after
-        # the stops are taken out. Pace is solved against that running time.
         stops = st.session_state[times_key]
-        running_minutes = goal_minutes - sum(stops)
-        if running_minutes <= 0:
-            st.warning(
-                "Your aid-station time is more than your whole goal. "
-                "Trim some stops or raise the goal."
-            )
-            running_minutes = 1.0
         plan = PacePlan(
             schedule=schedule,
-            goal_hours=running_minutes / 60.0,
+            goal_hours=goal_minutes / 60.0,
             start_time=start_time,
             aid_minutes_per_station=stops,
-            nominal_aid_minutes=0.0,
+            nominal_aid_minutes=NOMINAL_AID_MINUTES,
         )
 
-        self._render_summary(plan, running_minutes, start_time, formatter)
+        self._render_summary(plan, start_time, formatter)
 
         self._render_chart(plan, start_hour, start_minute)
 
@@ -220,6 +215,8 @@ class PacePlannerPage:
                 "Mile",
                 "Cutoff Close",
                 "Arrival",
+                "Your Pace",
+                "Time Window",
                 "Time at Station (min)",
                 "Departure",
                 "Buffer",
@@ -229,6 +226,8 @@ class PacePlannerPage:
                 "Mile",
                 "Cutoff Close",
                 "Arrival",
+                "Your Pace",
+                "Time Window",
                 "Departure",
                 "Buffer",
             ],
@@ -243,13 +242,18 @@ class PacePlannerPage:
             [r["Time at Station (min)"] for r in edited]
         )
         if edited_times != st.session_state[times_key]:
-            delta = sum(edited_times) - sum(st.session_state[times_key])
-            st.session_state[pending_key] = self._slid_goal_label(
-                goal_minutes, delta, min_minutes, total_cutoff_minutes, formatter
-            )
             st.session_state[times_key] = edited_times
-            st.session_state[note_key] = self._stop_change_note(delta, "that stop")
             st.rerun()
+
+        st.download_button(
+            "Download my plan (CSV)",
+            data=self._plan_as_csv(
+                plan, schedule, start_hour, start_minute, formatter
+            ),
+            file_name=f"vt100_pace_plan_{distance.lower()}.csv",
+            mime="text/csv",
+            help="Save this plan to print or carry on race day.",
+        )
 
         st.divider()
 
@@ -276,109 +280,32 @@ class PacePlannerPage:
             )
         )
         st.session_state[f"goal_slider_{distance}"] = default_label
-        st.session_state[f"last_note_{distance}"] = (
-            "↩️ Reset to defaults: goal and every aid-station stop are back "
-            "to the start."
-        )
-
-    def _on_goal_drag(self, distance: str) -> None:
-        """Note that the runner dragged the goal slider (re-paces running).
-
-        Wired to the slider's on_change, so it fires only on a real drag, not
-        when a stop edit or Reset moves the slider from code.
-
-        Args:
-            distance: "100M" or "100K", used to key the per-distance state.
-        """
-        label = st.session_state[f"goal_slider_{distance}"]
-        st.session_state[f"last_note_{distance}"] = (
-            f"🎯 Goal set to **{label}**. Your running pace adjusted to match; "
-            f"your aid-station stops are unchanged."
-        )
-
-    @staticmethod
-    def _stop_change_note(delta_minutes: float, what: str) -> str:
-        """Phrase the goal-time change caused by editing aid-station time.
-
-        Args:
-            delta_minutes: Change in total stop time; positive added time,
-                negative trimmed it.
-            what: Short phrase naming what changed, e.g. "that stop".
-
-        Returns:
-            A one-line note describing the effect on the goal time, or an empty
-            string when the total did not actually move.
-        """
-        minutes = int(round(abs(delta_minutes)))
-        unit = "minute" if minutes == 1 else "minutes"
-        if delta_minutes > 0:
-            return (
-                f"⏱️ You added time at {what}, so your goal time slid "
-                f"**{minutes} {unit} later**. Your running pace is unchanged."
-            )
-        if delta_minutes < 0:
-            return (
-                f"⏱️ You trimmed time at {what}, so your goal time came in "
-                f"**{minutes} {unit} sooner**. Your running pace is unchanged."
-            )
-        return ""
-
-    @staticmethod
-    def _slid_goal_label(
-        current_goal_minutes: float,
-        delta_minutes: float,
-        min_minutes: int,
-        max_minutes: int,
-        formatter: DisplayFormatters,
-    ) -> str:
-        """Return the goal-slider label after a stop change slides the goal.
-
-        Editing stops holds the running pace, so the goal moves by exactly the
-        change in total aid-station time (goal = running + stops), clamped to
-        the race's allowed range. The result is a slider option label, queued
-        as the pending goal and applied before the slider renders next run.
-
-        Args:
-            current_goal_minutes: The goal time now, in minutes.
-            delta_minutes: Change in total stop time; positive adds, negative
-                trims.
-            min_minutes: Smallest allowed goal time, in minutes.
-            max_minutes: Largest allowed goal time (the race cutoff), in minutes.
-            formatter: Used to format the new goal as an "Xh YYm" label.
-
-        Returns:
-            The clamped new goal as a slider option label, e.g. "28h 50m".
-        """
-        new_goal = min(
-            max(current_goal_minutes + delta_minutes, min_minutes), max_minutes
-        )
-        return formatter.format_hours(new_goal / 60.0)
 
     def _render_summary(
         self,
         plan: PacePlan,
-        running_minutes: float,
         start_time: time,
         formatter: DisplayFormatters,
     ) -> None:
-        """Render the goal-time headline, the make-it/miss-it verdict, and the
+        """Render the finish-time headline, the make-it/miss-it verdict, and the
         start / running-pace / finish line.
 
         Args:
             plan: The computed pace plan.
-            running_minutes: Pure moving time (goal minus all aid-station time).
             start_time: Race start time of day.
             formatter: Display formatter for clock times and durations.
         """
         finish_row = plan.rows[-1]
         total_aid_minutes = sum(row.aid_minutes for row in plan.rows)
+        finish_minutes = finish_row.target_arrival_minutes_from_start
+        running_minutes = finish_minutes - total_aid_minutes
         st.markdown(
             "<div style='text-align:center; line-height:1.45;'>"
             f"<div style='font-size:2.2rem; font-weight:700; color:#1565C0;'>"
-            f"{formatter.format_duration(finish_row.target_arrival_minutes_from_start)}"
+            f"{formatter.format_duration(finish_minutes)}"
             f"</div>"
             f"<div style='font-size:0.8rem; color:#555; margin-top:-0.2rem;'>"
-            f"goal time</div>"
+            f"finish time</div>"
             f"<div style='font-size:1.05rem;'>"
             f"{formatter.format_duration(running_minutes)} running + "
             f"{formatter.format_duration(total_aid_minutes)} at aid stations</div>"
@@ -401,10 +328,33 @@ class PacePlannerPage:
                 f"{formatter.format_duration(-missed.buffer_minutes)}. "
                 f"Run faster or trim stops."
             )
+        st.caption(
+            "Make or miss is based on **arriving** before each cutoff. "
+            "Stations where you'd arrive in time but leave after closing are "
+            "noted below, so you know where not to linger."
+        )
+        leave_late = [
+            row
+            for row in plan.rows
+            if row.target_arrival_minutes_from_start
+            <= row.cutoff_minutes_from_start
+            < row.departure_minutes_from_start
+        ]
+        if leave_late:
+            names = ", ".join(f"{row.station_name} (mile {row.mile})" for row in leave_late)
+            st.warning(
+                f"⏳ You arrive in time but would **leave after closing** at: "
+                f"{names}. Keep these stops short so you are not pulled."
+            )
         st.markdown(
             f"**Start:** {formatter.format_clock_time(start_time)} &nbsp;|&nbsp; "
             f"**Running pace:** {formatter.format_pace(plan.pace_per_mile_minutes)} &nbsp;|&nbsp; "
             f"**Expected finish:** {formatter.format_clock_time(finish_row.target_arrival_time)}"
+        )
+        st.caption(
+            "This is the pace that stays ahead of the cutoffs. Most finishers "
+            "run the first half with more cushion than this and slow later, so "
+            "treat it as the floor, not the plan."
         )
 
     def _build_table_rows(
@@ -433,7 +383,7 @@ class PacePlannerPage:
         """
         buffer_dots = {
             "Tight (under 30m)": "🔴",
-            "Caution (30m-1h)": "🟡",
+            "Caution (30m to 1h)": "🟡",
             "Comfortable (over 1h)": "🟢",
         }
         return [
@@ -456,6 +406,12 @@ class PacePlannerPage:
                     start_hour,
                     start_minute,
                 ),
+                "Your Pace": formatter.format_pace(
+                    row.your_section_pace_min_per_mile
+                ),
+                "Time Window": formatter.format_duration(
+                    row.cutoff_window_minutes
+                ),
                 "Time at Station (min)": row.aid_minutes,
                 "Departure": formatter.format_clock_time_with_day(
                     row.departure_time,
@@ -470,6 +426,69 @@ class PacePlannerPage:
             }
             for row, station in zip(plan.rows, schedule.stations)
         ]
+
+    @staticmethod
+    def _plan_as_csv(
+        plan: PacePlan,
+        schedule: CutoffSchedule,
+        start_hour: int,
+        start_minute: int,
+        formatter: DisplayFormatters,
+    ) -> str:
+        """Build a downloadable CSV of the current pace plan.
+
+        One row per aid station, in course order, with the same columns as the
+        on-screen table plus a plain-text cushion category (the table shows it
+        as a color).
+
+        Args:
+            plan: The computed pace plan.
+            schedule: The cutoff schedule, for each station's type code.
+            start_hour: Race start hour, for day-aware clock formatting.
+            start_minute: Race start minute, for day-aware clock formatting.
+            formatter: Display formatter for clock times and durations.
+
+        Returns:
+            The plan as CSV text, with a header row.
+        """
+        header = (
+            "Aid Station,Mile,Cutoff Close,Arrival,Your Pace,Time Window,"
+            "Time at Station (min),Departure,Buffer,Cushion"
+        )
+        lines = [header]
+        for row, station in zip(plan.rows, schedule.stations):
+            name = row.station_name + (
+                " (drop bag)" if "D" in station.station_type else ""
+            )
+            cells = [
+                name,
+                f"{row.mile:.1f}",
+                formatter.format_clock_time_with_day(
+                    row.cutoff_close_time,
+                    row.cutoff_minutes_from_start,
+                    start_hour,
+                    start_minute,
+                ),
+                formatter.format_clock_time_with_day(
+                    row.target_arrival_time,
+                    row.target_arrival_minutes_from_start,
+                    start_hour,
+                    start_minute,
+                ),
+                formatter.format_pace(row.your_section_pace_min_per_mile),
+                formatter.format_duration(row.cutoff_window_minutes),
+                f"{row.aid_minutes:.0f}",
+                formatter.format_clock_time_with_day(
+                    row.departure_time,
+                    row.departure_minutes_from_start,
+                    start_hour,
+                    start_minute,
+                ),
+                formatter.format_duration(row.buffer_minutes),
+                formatter.buffer_category(row.buffer_minutes),
+            ]
+            lines.append(",".join(f'"{cell}"' for cell in cells))
+        return "\n".join(lines)
 
     def _render_chart(
         self, plan: PacePlan, start_hour: int, start_minute: int
@@ -606,7 +625,7 @@ class PacePlannerPage:
         # its own legend entry.
         cushion_colors = {
             "Tight (under 30m)": "#C62828",
-            "Caution (30m-1h)": "#F9A825",
+            "Caution (30m to 1h)": "#F9A825",
             "Comfortable (over 1h)": "#2E7D32",
         }
         # Always add all three categories (even when empty) so the legend
@@ -711,7 +730,7 @@ class PacePlannerPage:
             "colored dot when you leave. The step between them is your time "
             "there. The leave dot's color is your cutoff cushion: red under "
             "30 min, amber 30 min to 1 hour, green over 1 hour. Drag a box to "
-            "zoom; double-click to reset."
+            "zoom, and double click to reset."
         )
 
 

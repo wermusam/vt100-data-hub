@@ -12,7 +12,7 @@ from vt100_data_hub.duv_events import DUVEventRegistry
 from vt100_data_hub.formatting import DisplayFormatters
 from vt100_data_hub.queries import RunnerQueries
 
-DB_PATH = Path(__file__).parent.parent / "data" / "vt100.db"
+DB_PATH = Path(__file__).parent.parent.parent / "data" / "vt100.db"
 
 
 @st.cache_data(show_spinner=False)
@@ -74,8 +74,7 @@ class ReturningRunnersPage:
             page_icon="🏃",
             layout="wide",
         )
-        st.title("Vermont 100 Data Hub")
-        st.subheader("Returning Runners")
+        st.title("Returning Runners")
 
         if not self.db_path.exists():
             st.error(
@@ -85,27 +84,31 @@ class ReturningRunnersPage:
             )
             return
 
-        st.sidebar.header("Filters")
-        distance = st.sidebar.radio(
-            "Distance", options=["100M", "100K"], index=0
-        )
-        n = st.sidebar.slider(
-            "Minimum finishes",
-            min_value=1,
-            max_value=8,
-            value=4,
-            help="How many times a runner must have finished to qualify.",
-        )
-        window = st.sidebar.slider(
-            "Recent races to count",
-            min_value=1,
-            max_value=8,
-            value=8,
-            help=(
-                "How many of the most recent editions to look at. "
-                "Default 8 = all available."
-            ),
-        )
+        st.markdown("**Filters**")
+        filter_cols = st.columns(3)
+        with filter_cols[0]:
+            distance = st.radio(
+                "Distance", options=["100M", "100K"], index=0, horizontal=True
+            )
+        with filter_cols[1]:
+            n = st.slider(
+                "Minimum finishes",
+                min_value=1,
+                max_value=8,
+                value=4,
+                help="How many times a runner must have finished to qualify.",
+            )
+        with filter_cols[2]:
+            window = st.slider(
+                "Recent races to count",
+                min_value=1,
+                max_value=8,
+                value=8,
+                help=(
+                    "How many of the most recent editions to look at. "
+                    "Default 8 is all available."
+                ),
+            )
 
         st.markdown(
             f"The table shows runners with **{n}+** finishes in the last "
@@ -114,14 +117,14 @@ class ReturningRunnersPage:
 
         with st.expander("How to read this page"):
             st.markdown(
-                "- **Runner**: name as published by DUV.\n"
-                "- **Finishes**: number of times this runner has finished "
-                "in the selected window.\n"
-                "- **Latest Year**: most recent year they finished.\n"
-                "- **Years**: every year they finished within the window.\n\n"
-                "The 4-of-8 rule means a runner who finished at least 4 of "
-                "the last 8 editions held qualifies for early entry the "
-                "following year."
+                "**Runner:** name as published by DUV.\n\n"
+                "**Finishes:** number of times this runner has finished in the "
+                "selected window.\n\n"
+                "**Latest Year:** most recent year they finished.\n\n"
+                "**Years:** every year they finished within the window.\n\n"
+                "The 4 of 8 rule means a runner who finished at least 4 of the "
+                "last 8 editions held qualifies for early entry the following "
+                "year."
             )
 
         registry = DUVEventRegistry()

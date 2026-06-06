@@ -48,8 +48,8 @@ class TestBufferCategory:
     def test_30_to_60_minutes_is_caution(self) -> None:
         """A buffer from 30 to 60 minutes is Caution."""
         formatter = DisplayFormatters()
-        assert formatter.buffer_category(30) == "Caution (30m-1h)"
-        assert formatter.buffer_category(60) == "Caution (30m-1h)"
+        assert formatter.buffer_category(30) == "Caution (30m to 1h)"
+        assert formatter.buffer_category(60) == "Caution (30m to 1h)"
 
     def test_over_60_minutes_is_comfortable(self) -> None:
         """A buffer over 60 minutes is Comfortable."""
@@ -106,10 +106,10 @@ class TestFormatPace:
         formatter = DisplayFormatters()
         assert formatter.format_pace(14.85) == "14:51/mi"
 
-    def test_non_positive_returns_dash(self) -> None:
-        """A non-positive pace returns an em dash."""
+    def test_non_positive_returns_na(self) -> None:
+        """A non-positive pace returns 'n/a'."""
         formatter = DisplayFormatters()
-        assert formatter.format_pace(0) == "—"
+        assert formatter.format_pace(0) == "n/a"
 
     def test_rounds_up_to_next_minute(self) -> None:
         """A pace that rounds to 60 seconds rolls into the next minute."""

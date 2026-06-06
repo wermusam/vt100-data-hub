@@ -88,6 +88,30 @@ class TestPacePlan:
         first = plan.rows[0]
         assert first.cutoff_window_minutes == 135
 
+    def test_buffer_is_measured_to_arrival_not_departure(self) -> None:
+        """Buffer is cutoff minus arrival, so time spent at a station does not
+        eat into it. With a stop, it differs from the departure-based value."""
+        schedule = CutoffSchedule(
+            csv_path=CUTOFFS_2026_100M_PATH, distance="100M"
+        )
+        plan = PacePlan(
+            schedule=schedule,
+            goal_hours=27.0,
+            start_time=time(4, 0),
+            aid_station_minutes=5.0,
+            nominal_aid_minutes=0.0,
+        )
+        row = plan.rows[3]
+        assert row.aid_minutes == 5.0
+        assert row.buffer_minutes == (
+            row.cutoff_minutes_from_start
+            - row.target_arrival_minutes_from_start
+        )
+        departure_based = (
+            row.cutoff_minutes_from_start - row.departure_minutes_from_start
+        )
+        assert row.buffer_minutes != departure_based
+
     def test_verdict_makes_it_on_a_reachable_goal(self) -> None:
         """A 28-hour plan clears every cutoff, so the verdict makes it."""
         plan = self._make_plan(goal_hours=28.0)
@@ -353,3 +377,94 @@ class TestPacePlanWithAidStationTime:
         )
         assert plan.rows[5].aid_minutes == 20.0
         assert plan.rows[-1].target_arrival_minutes_from_start == 1680.0 + 17.0
+
+
+class TestCutoffAnchoredModel:
+    """The cutoff-anchored model: arrivals are the cutoff clock scaled by the
+    goal, the baseline stop is absorbed so the default never misses, and stop
+    time above the baseline is additive and can cause a miss."""
+
+    BASELINE = 5.0
+
+    def _plan(self, goal_hours: float, stops: list[float]) -> PacePlan:
+        """Build a 2026 100M plan at the given goal and per-station stops."""
+        schedule = CutoffSchedule(
+            csv_path=CUTOFFS_2026_100M_PATH, distance="100M"
+        )
+        return PacePlan(
+            schedule=schedule,
+            goal_hours=goal_hours,
+            start_time=time(4, 0),
+            aid_minutes_per_station=stops,
+            nominal_aid_minutes=self.BASELINE,
+        )
+
+    def _baseline_stops(self) -> list[float]:
+        """Default 5-min stop at every station, none at the finish."""
+        schedule = CutoffSchedule(
+            csv_path=CUTOFFS_2026_100M_PATH, distance="100M"
+        )
+        n = len(schedule.stations)
+        return PacePlan.stop_minutes_with_no_finish_stop([self.BASELINE] * n)
+
+    def test_baseline_plan_never_misses_at_any_goal(self) -> None:
+        """With baseline stops, every goal from 15h to 30h clears every cutoff."""
+        stops = self._baseline_stops()
+        for goal in (15.0, 20.0, 24.0, 28.0, 30.0):
+            plan = self._plan(goal, stops)
+            assert plan.verdict().makes_it is True, f"goal {goal} missed"
+            assert min(r.buffer_minutes for r in plan.rows) >= -1e-9
+
+    def test_30h_baseline_rides_the_cutoffs_and_finishes_at_30h(self) -> None:
+        """At the 30h goal you arrive exactly at every cutoff (buffer 0) and the
+        finish lands at 1800 minutes."""
+        plan = self._plan(30.0, self._baseline_stops())
+        assert min(r.buffer_minutes for r in plan.rows) == 0.0
+        assert plan.rows[-1].target_arrival_minutes_from_start == 1800.0
+
+    def test_faster_goal_grows_the_cushion(self) -> None:
+        """A faster goal pulls arrivals earlier, so every buffer grows."""
+        stops = self._baseline_stops()
+        slow = self._plan(30.0, stops)
+        fast = self._plan(24.0, stops)
+        for slow_row, fast_row in zip(slow.rows, fast.rows):
+            assert fast_row.buffer_minutes >= slow_row.buffer_minutes
+
+    def test_extra_stop_over_baseline_can_miss(self) -> None:
+        """A big drop bag (well over the baseline) pushes later arrivals past
+        their cutoffs, so the verdict flips to a miss."""
+        stops = self._baseline_stops()
+        stops[5] = 60.0  # 55 minutes over the baseline
+        plan = self._plan(30.0, stops)
+        assert plan.verdict().makes_it is False
+
+    def test_extra_stop_shifts_only_later_stations(self) -> None:
+        """Adding time at one station shifts the stations after it by exactly the
+        extra-over-baseline, and leaves the ones before it untouched."""
+        base = self._plan(28.0, self._baseline_stops())
+        stops = self._baseline_stops()
+        stops[8] = 25.0  # 20 minutes over the baseline
+        edited = self._plan(28.0, stops)
+        # Before the edit: unchanged.
+        assert (
+            edited.rows[7].target_arrival_minutes_from_start
+            == base.rows[7].target_arrival_minutes_from_start
+        )
+        # After the edit: shifted by the 20 extra minutes.
+        assert (
+            edited.rows[10].target_arrival_minutes_from_start
+            == base.rows[10].target_arrival_minutes_from_start + 20.0
+        )
+
+    def test_running_pace_is_independent_of_extra_stops(self) -> None:
+        """Each leg's running pace depends on the goal and baseline only; a drop
+        bag adds standing time, it does not change how fast you run."""
+        base = self._plan(28.0, self._baseline_stops())
+        stops = self._baseline_stops()
+        stops[8] = 25.0
+        edited = self._plan(28.0, stops)
+        for base_row, edited_row in zip(base.rows, edited.rows):
+            assert (
+                base_row.your_section_pace_min_per_mile
+                == edited_row.your_section_pace_min_per_mile
+            )

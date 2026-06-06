@@ -36,13 +36,13 @@ class DisplayFormatters:
                 Negative means the goal time misses that cutoff.
 
         Returns:
-            One of "Tight (under 30m)", "Caution (30m-1h)", or
+            One of "Tight (under 30m)", "Caution (30m to 1h)", or
             "Comfortable (over 1h)".
         """
         if minutes < 30:
             return "Tight (under 30m)"
         if minutes <= 60:
-            return "Caution (30m-1h)"
+            return "Caution (30m to 1h)"
         return "Comfortable (over 1h)"
 
     def format_clock_time(self, t: time) -> str:
@@ -91,10 +91,10 @@ class DisplayFormatters:
             minutes_per_mile: Pace in decimal minutes per mile.
 
         Returns:
-            A 'MM:SS/mi' string, or '—' if the pace is non-positive.
+            A 'MM:SS/mi' string, or 'n/a' if the pace is non-positive.
         """
         if minutes_per_mile <= 0:
-            return "—"
+            return "n/a"
         whole = int(minutes_per_mile)
         seconds = int(round((minutes_per_mile - whole) * 60))
         if seconds == 60:

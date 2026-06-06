@@ -15,20 +15,24 @@ how fast do I actually have to move between aid stations?"*
 
 ### How it works, in one idea
 
-> **Goal time = running time + time spent at aid stations.**
+> **The plan is built backward from the cutoffs, so you never miss one by
+> default.**
+
+Each aid station's target arrival is its real cutoff clock scaled by your goal,
+and the finish line is the endpoint you cross at your goal time. So a generous
+section is run easier and a tight one harder, and at the slowest goal (30 hours,
+the race limit) you arrive right at every cutoff and finish at exactly 30 hours.
 
 You turn two knobs:
 
-- **The goal slider** — your target finish. Drag it and your *running pace*
-  adjusts to hit it; your stop times stay put.
+- **The goal slider** — your target finish (about 15 to 30 hours). Faster runs
+  every leg quicker and gives more cushion; the slowest setting rides the
+  cutoffs. It changes only your running pace, not your stops.
 - **Aid-station time** — minutes at each stop (default 5 everywhere, editable
-  per station). Add time and your *goal time slides later* by exactly that
-  much; trim it and the finish comes in sooner. Your running pace doesn't
-  change — only the goal moves.
-
-The pace for each segment is **proportional to that segment's cutoff window**,
-so the plan rides the real cutoff curve instead of assuming one flat pace for
-100 miles. A generous section is run easier; a tight one is run harder.
+  per station). The first 5 minutes at each stop are built into the pace, so the
+  default plan stays ahead of every cutoff. Spend *more* than that and it adds to
+  your finish and eats your cushion (too much shows a red miss); spend *less* and
+  you gain cushion. A table edit only shifts that station and the ones after it.
 
 ### What the runner sees
 
@@ -92,12 +96,12 @@ A few comparable tools exist, all more general than race-specific:
   split predictors and spreadsheet builders, not tied to a specific race's
   cutoffs.
 
-**Does the method hold up?** Sports-science research on ultra pacing is
-consistent: **even or slightly-negative splits finish fastest** — everyone
-slows, and the best runners slow the *least*. This tool plans effort relative to
-the cutoffs (steady against the clock), which is a sound, conservative basis.
-A future "fade" option (plan the back half slower, like real runners do) would
-match the research even more closely.
+**Does the method hold up?** It is a **cutoff-survival** tool, not a
+performance-optimization pacer, and the page says so. Sports-science research is
+consistent that **even or slightly-negative splits finish fastest** and runners
+should bank time early. This tool guarantees you stay ahead of the cutoffs and
+notes plainly that "most finishers run the first half with more cushion than
+this," so a runner treats it as the floor, not the plan.
 
 Sources: [UltraPacer](https://ultrapacer.com/) ·
 [iRunFar pacing methods](https://www.irunfar.com/emergent-methods-for-determining-ultramarathon-race-day-pacing) ·
@@ -108,20 +112,18 @@ Sources: [UltraPacer](https://ultrapacer.com/) ·
 
 ## What's tested
 
-144 automated tests cover the parser, storage, the 4-of-8 and both-distances
+161 automated tests cover the parser, storage, the 4-of-8 and both-distances
 queries (including the same-name/name-change accuracy cases), the cutoff loader,
-the pace math, the make-it/miss-it verdict, and the live page itself (slider,
-average, reset button, and both distances) driven through Streamlit's test
-harness. The DUV event IDs have a separate verification script.
+the cutoff-anchored pace math (never-miss at the baseline across the whole goal
+range, additive extra-stop misses, forward-only stop edits), the make-it/miss-it
+verdict, and the live page itself (slider, average, reset, both distances)
+driven through Streamlit's test harness. The DUV event IDs have a separate
+verification script.
 
 ---
 
 ## Honest gaps and natural next steps
 
-- **Live "what changed" notes.** Today a static caption explains the rules. The
-  next step is a note that fires the moment you act — *"+1 min at this stop adds
-  1 min to your goal time"* / *"dragging the goal re-paced your running, not your
-  stops."* This is the clearest way to make the two knobs obvious.
 - **An optional built-in longer night stop** (a drop-bag recovery default),
   still undecided.
 - **A printable pace band / PDF** for race day — the artifact a race director

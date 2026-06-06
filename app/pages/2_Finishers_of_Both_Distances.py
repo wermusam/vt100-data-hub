@@ -51,6 +51,11 @@ class FinishersOfBothDistancesPage:
 
     def render(self) -> None:
         """Render the Finishers of Both Distances page."""
+        st.set_page_config(
+            page_title="Vermont 100 Data Hub",
+            page_icon="🏃",
+            layout="wide",
+        )
         st.title("Finishers of Both Distances")
         st.subheader("Runners who've finished both the 100M and the 100K")
         st.markdown(
@@ -73,7 +78,7 @@ class FinishersOfBothDistancesPage:
         formatter = DisplayFormatters()
 
         if not results:
-            st.info("No cross-distance runners found.")
+            st.info("No crossover runners found.")
         else:
             st.markdown(
                 f"**{len(results)} runners have finished both distances**"

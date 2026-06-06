@@ -21,7 +21,7 @@ This project uses [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync                                   # install dependencies
-uv run streamlit run app/Returning_Runners.py
+uv run streamlit run app/Responsible_Pace_Chart.py
 ```
 
 The app opens in your browser. The other pages appear in the sidebar.
@@ -32,7 +32,7 @@ The end goal is a link anyone can open on a phone.
 
 1. Push this branch to GitHub.
 2. Go to [share.streamlit.io](https://share.streamlit.io), connect the repo,
-   and set the main file to `app/Returning_Runners.py`.
+   and set the main file to `app/Responsible_Pace_Chart.py`.
 3. Streamlit installs from `requirements.txt` (which installs this package and
    its dependencies) and serves the app at a public URL.
 

@@ -13,8 +13,8 @@ from pathlib import Path
 from streamlit.testing.v1 import AppTest
 
 APP_DIR = Path(__file__).parent.parent / "app"
-RETURNING_RUNNERS = str(APP_DIR / "Returning_Runners.py")
-FINISHERS_BOTH = str(APP_DIR / "pages" / "Finishers_of_Both_Distances.py")
+RETURNING_RUNNERS = str(APP_DIR / "pages" / "1_Returning_Runners.py")
+FINISHERS_BOTH = str(APP_DIR / "pages" / "2_Finishers_of_Both_Distances.py")
 
 
 class TestReturningRunnersPage:

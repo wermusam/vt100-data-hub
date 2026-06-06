@@ -29,9 +29,9 @@ class StationPaceRow:
             finish line, where there is no stop).
         departure_time: Clock time when the runner leaves (arrival + aid_minutes).
         departure_minutes_from_start: Minutes elapsed from race start to departure.
-        buffer_minutes: cutoff_minutes minus departure_minutes. Measured to
-            departure because the runner must leave by the cutoff. Negative
-            means the plan misses this cutoff.
+        buffer_minutes: cutoff_minutes minus arrival_minutes. Measured to
+            arrival because a runner makes a cutoff by arriving before it
+            closes. Negative means the plan arrives after this cutoff.
         your_section_pace_min_per_mile: Moving pace (not counting aid-station
             time) the runner needs from the previous station to this one.
     """
@@ -100,22 +100,30 @@ class PaceVerdict:
 class PacePlan:
     """A pace plan for one Vermont 100 race attempt.
 
+    The plan is built backward from the cutoffs. Each intermediate arrival is the
+    station's cutoff clock scaled by the goal, so the finish (the endpoint) is
+    reached at the goal and every intermediate is reached with a buffer. The
+    baseline stop is absorbed into the leg paces, so a plan at the baseline stop
+    never misses a cutoff. Only stop time above the baseline is additive: it
+    shifts that station and the ones after it later, and can eat a buffer into a
+    miss.
+
     Attributes:
         schedule: The CutoffSchedule of aid stations for the race.
-        goal_hours: Your total finish time in hours, measured at the nominal
-            stop time. The moving pace is solved against that fixed allowance,
-            so a plan with every stop at the nominal finishes at the goal.
+        goal_hours: Your target finish time in hours, assuming the baseline stop
+            at every station. Arrivals are scaled to it; a plan at the baseline
+            stop finishes exactly here. Extra stop time pushes the finish later.
         start_time: Race start time (default 4:00 AM Saturday).
         aid_station_minutes: Uniform actual minutes at each stop, used only
             when aid_minutes_per_station is not given.
         aid_minutes_per_station: Optional actual per-station times (one value
             per station, in course order) for drop-bag and other custom stops.
-        nominal_aid_minutes: The assumed stop time the goal is measured against
-            (default 0.0, so the goal is pure running time). The app sets it to
-            its nominal stop time, so actual stop time above or below the
-            nominal adds to or trims from the finish without re-pacing.
+        nominal_aid_minutes: The baseline stop absorbed into the leg paces
+            (default 0.0). Stop time above this is additive and can cause a miss;
+            below this pulls arrivals in.
         race_distance_miles: Total race distance (from the last station's mileage).
-        pace_per_mile_minutes: Required overall average pace, given goal_hours.
+        pace_per_mile_minutes: Overall running pace (moving only), i.e. the goal
+            less the baseline stops, spread over the distance.
         rows: One StationPaceRow per aid station, in course order.
     """
 
@@ -135,13 +143,18 @@ class PacePlan:
         self.aid_minutes_per_station = aid_minutes_per_station
         self.nominal_aid_minutes = nominal_aid_minutes
         self.race_distance_miles = schedule.stations[-1].mileage  # last station = finish line
-        self.pace_per_mile_minutes = (goal_hours * 60.0) / self.race_distance_miles
+        # Overall running pace is the goal less the baseline stops (which are
+        # absorbed into the legs), spread over the distance.
+        moving_budget_minutes = goal_hours * 60.0 - nominal_aid_minutes * max(
+            len(schedule.stations) - 1, 0
+        )
+        self.pace_per_mile_minutes = moving_budget_minutes / self.race_distance_miles
         self.rows = self._compute_rows()
 
     def verdict(self) -> PaceVerdict:
         """Summarize whether this plan clears every Vermont 100 cutoff.
 
-        Buffers are measured to departure, so a runner who leaves a station
+        Buffers are measured to arrival, so a runner who arrives at a station
         exactly at its cutoff (zero buffer) still makes it.
 
         Returns:
@@ -161,12 +174,14 @@ class PacePlan:
     def _compute_rows(self) -> list[StationPaceRow]:
         """Walk every station and build the pace plan rows in course order.
 
-        The goal time is your total finish assuming the nominal stop time:
-        that fixed allowance is carved out of the goal and the remaining moving
-        budget is spread across the course in proportion to the cutoffs. Actual
-        stop time above or below the nominal (a longer average or one big stop)
-        adds to or trims from the finish instead of being absorbed, and shifts
-        only the stations after it. Cushion is measured to departure.
+        Arrivals are built backward from the cutoffs: each station's arrival is
+        its cutoff clock scaled by goal/total, so the finish lands at the goal
+        and every intermediate is reached with a buffer. The baseline stop is
+        absorbed into the leg paces (so a baseline plan never misses); stop time
+        above the baseline is additive, shifting this station and the ones after
+        it later, and can eat a buffer into a miss. Cushion is measured to
+        arrival, and each leg's pace is the running time from leaving the
+        previous station to arriving at this one, over the leg's miles.
         """
         start_minutes_of_day = self.start_time.hour * 60 + self.start_time.minute
         rows: list[StationPaceRow] = []
@@ -175,7 +190,7 @@ class PacePlan:
         total_race_cutoff_minutes = cutoffs_from_start[-1]
 
         # Per-station aid time: an explicit override list if given, else the
-        # uniform average for every station. No stop at the finish line.
+        # uniform value for every station. No stop at the finish line.
         station_count = len(self.schedule.stations)
         if self.aid_minutes_per_station is not None:
             aids = [float(minutes) for minutes in self.aid_minutes_per_station]
@@ -183,26 +198,21 @@ class PacePlan:
             aids = [self.aid_station_minutes] * station_count
         if aids:
             aids[-1] = 0.0
-        # The goal is your total finish assuming the NOMINAL stop time at every
-        # station. That fixed allowance is folded into the goal and sets the
-        # moving pace. Any actual stop time above or below the nominal is not
-        # absorbed by the pace; it adds to (or trims from) the finish and shifts
-        # the stations after it. Raising the average or one stop pushes the
-        # finish later; the goal slider re-solves the pace and leaves stops be.
-        baseline_aid_minutes = self.nominal_aid_minutes * max(station_count - 1, 0)
-        moving_scale = (
-            self.goal_hours * 60.0 - baseline_aid_minutes
-        ) / total_race_cutoff_minutes
+
+        # Scale the cutoff clock by the goal. At the 30h goal scale is 1.0 (you
+        # ride the cutoffs); a faster goal pulls every arrival earlier.
+        scale = (self.goal_hours * 60.0) / total_race_cutoff_minutes
 
         prev_mile = 0.0
         prev_cutoff_minutes = 0
-        prev_moving_minutes = 0.0
-        aid_before = 0.0
+        prev_departure_minutes = 0.0
+        # Running total of stop time above the baseline; this is what shifts
+        # later arrivals (the baseline itself is absorbed into the leg paces).
+        extra_aid_before = 0.0
         for index, (station, cutoff_minutes_from_start) in enumerate(
             zip(self.schedule.stations, cutoffs_from_start)
         ):
-            moving_minutes = cutoff_minutes_from_start * moving_scale
-            arrival_minutes = moving_minutes + aid_before
+            arrival_minutes = cutoff_minutes_from_start * scale + extra_aid_before
             aid_minutes = aids[index]
             departure_minutes = arrival_minutes + aid_minutes
 
@@ -213,11 +223,11 @@ class PacePlan:
                 start_minutes_of_day + departure_minutes
             )
 
-            buffer_minutes = cutoff_minutes_from_start - departure_minutes
+            buffer_minutes = cutoff_minutes_from_start - arrival_minutes
 
             section_distance = station.mileage - prev_mile
             cutoff_window_minutes = cutoff_minutes_from_start - prev_cutoff_minutes
-            section_moving_minutes = moving_minutes - prev_moving_minutes
+            section_moving_minutes = arrival_minutes - prev_departure_minutes
             your_section_pace = (
                 section_moving_minutes / section_distance
                 if section_distance > 0
@@ -244,8 +254,8 @@ class PacePlan:
 
             prev_mile = station.mileage
             prev_cutoff_minutes = cutoff_minutes_from_start
-            prev_moving_minutes = moving_minutes
-            aid_before += aid_minutes
+            prev_departure_minutes = departure_minutes
+            extra_aid_before += aid_minutes - self.nominal_aid_minutes
 
         return rows
 
