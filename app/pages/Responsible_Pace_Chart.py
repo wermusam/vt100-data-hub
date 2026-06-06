@@ -200,6 +200,22 @@ class PacePlannerPage:
             "</div>",
             unsafe_allow_html=True,
         )
+        verdict = plan.verdict()
+        if verdict.makes_it:
+            tight = verdict.tightest_row
+            st.success(
+                f"✅ **You make it** — this plan clears every cutoff. Tightest "
+                f"is **{tight.station_name}** (mile {tight.mile}), "
+                f"{formatter.format_duration(tight.buffer_minutes)} to spare."
+            )
+        else:
+            missed = verdict.first_missed_row
+            st.error(
+                f"⛔ **This plan misses the cutoff at {missed.station_name}** "
+                f"(mile {missed.mile}) by "
+                f"{formatter.format_duration(-missed.buffer_minutes)}. "
+                f"Run faster or trim stops."
+            )
         st.markdown(
             f"**Start:** {formatter.format_clock_time(start_time)} &nbsp;|&nbsp; "
             f"**Running pace:** {formatter.format_pace(plan.pace_per_mile_minutes)} &nbsp;|&nbsp; "

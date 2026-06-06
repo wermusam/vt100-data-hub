@@ -88,6 +88,30 @@ class TestPacePlan:
         first = plan.rows[0]
         assert first.cutoff_window_minutes == 135
 
+    def test_verdict_makes_it_on_a_reachable_goal(self) -> None:
+        """A 28-hour plan clears every cutoff, so the verdict makes it."""
+        plan = self._make_plan(goal_hours=28.0)
+        verdict = plan.verdict()
+        assert verdict.makes_it is True
+        assert verdict.first_missed_row is None
+
+    def test_verdict_reports_the_tightest_station(self) -> None:
+        """The verdict's tightest row is the station with the smallest buffer."""
+        plan = self._make_plan(goal_hours=28.0)
+        verdict = plan.verdict()
+        expected = min(plan.rows, key=lambda row: row.buffer_minutes)
+        assert verdict.tightest_row.station_name == expected.station_name
+        assert verdict.tightest_row.buffer_minutes == expected.buffer_minutes
+
+    def test_verdict_flags_the_first_missed_cutoff(self) -> None:
+        """A 31-hour plan is slower than every cutoff, so it misses, and the
+        first missed station is the earliest one on the course."""
+        plan = self._make_plan(goal_hours=31.0)
+        verdict = plan.verdict()
+        assert verdict.makes_it is False
+        assert verdict.first_missed_row is not None
+        assert verdict.first_missed_row.station_name == plan.rows[0].station_name
+
     def test_section_paces_are_not_uniform(self) -> None:
         """The plan paces each section to its own cutoff window, so the
         required pace changes station to station — it is not one flat pace

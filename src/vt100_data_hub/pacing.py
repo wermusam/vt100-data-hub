@@ -67,6 +67,36 @@ class StationPaceRow:
         self.your_section_pace_min_per_mile = your_section_pace_min_per_mile
 
 
+class PaceVerdict:
+    """A plain-language verdict on whether a plan beats every cutoff.
+
+    This is the one-glance answer a runner (or the race director) wants:
+    does this plan make it, where is it tightest, and — if it fails — where
+    does the day end. It is intentionally small so more fields can be added
+    when the race director asks for more.
+
+    Attributes:
+        makes_it: True when every station's buffer is non-negative, i.e. the
+            runner departs each aid station on or before its cutoff. A zero
+            buffer still counts as making it.
+        tightest_row: The StationPaceRow with the smallest buffer — the closest
+            call. Shown even on a passing plan so the squeeze is visible.
+        first_missed_row: The earliest StationPaceRow with a negative buffer,
+            or None when the plan clears every cutoff. This is where a failing
+            plan gets the runner pulled.
+    """
+
+    def __init__(
+        self,
+        makes_it: bool,
+        tightest_row: StationPaceRow,
+        first_missed_row: StationPaceRow | None,
+    ) -> None:
+        self.makes_it = makes_it
+        self.tightest_row = tightest_row
+        self.first_missed_row = first_missed_row
+
+
 class PacePlan:
     """A pace plan for one Vermont 100 race attempt.
 
@@ -107,6 +137,26 @@ class PacePlan:
         self.race_distance_miles = schedule.stations[-1].mileage  # last station = finish line
         self.pace_per_mile_minutes = (goal_hours * 60.0) / self.race_distance_miles
         self.rows = self._compute_rows()
+
+    def verdict(self) -> PaceVerdict:
+        """Summarize whether this plan clears every Vermont 100 cutoff.
+
+        Buffers are measured to departure, so a runner who leaves a station
+        exactly at its cutoff (zero buffer) still makes it.
+
+        Returns:
+            A PaceVerdict with the pass/fail flag, the tightest station, and
+            the first missed cutoff (or None when every cutoff is cleared).
+        """
+        tightest_row = min(self.rows, key=lambda row: row.buffer_minutes)
+        first_missed_row = next(
+            (row for row in self.rows if row.buffer_minutes < 0), None
+        )
+        return PaceVerdict(
+            makes_it=first_missed_row is None,
+            tightest_row=tightest_row,
+            first_missed_row=first_missed_row,
+        )
 
     def _compute_rows(self) -> list[StationPaceRow]:
         """Walk every station and build the pace plan rows in course order.
