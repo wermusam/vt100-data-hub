@@ -243,6 +243,13 @@ class PacePlannerPage:
             help="Put the goal, the average, and every stop back to the start.",
         )
 
+        # Dots shade the Buffer cells red/yellow/green using the same cushion
+        # thresholds as the line graph, so the table and chart read the same.
+        buffer_dots = {
+            "Tight (under 30m)": "🔴",
+            "Caution (30m-1h)": "🟡",
+            "Comfortable (over 1h)": "🟢",
+        }
         table_data = [
             {
                 "Aid Station": (
@@ -270,7 +277,10 @@ class PacePlannerPage:
                     start_hour,
                     start_minute,
                 ),
-                "Buffer": formatter.format_duration(row.buffer_minutes),
+                "Buffer": (
+                    f"{buffer_dots[formatter.buffer_category(row.buffer_minutes)]} "
+                    f"{formatter.format_duration(row.buffer_minutes)}"
+                ),
             }
             for row, station in zip(plan.rows, schedule.stations)
         ]
