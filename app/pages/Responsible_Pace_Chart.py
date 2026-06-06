@@ -193,43 +193,7 @@ class PacePlannerPage:
             nominal_aid_minutes=0.0,
         )
 
-        finish_row = plan.rows[-1]
-        total_aid_minutes = sum(row.aid_minutes for row in plan.rows)
-        moving_minutes = running_minutes
-        st.markdown(
-            "<div style='text-align:center; line-height:1.45;'>"
-            f"<div style='font-size:2.2rem; font-weight:700; color:#1565C0;'>"
-            f"{formatter.format_duration(finish_row.target_arrival_minutes_from_start)}"
-            f"</div>"
-            f"<div style='font-size:0.8rem; color:#555; margin-top:-0.2rem;'>"
-            f"goal time</div>"
-            f"<div style='font-size:1.05rem;'>"
-            f"{formatter.format_duration(moving_minutes)} running + "
-            f"{formatter.format_duration(total_aid_minutes)} at aid stations</div>"
-            "</div>",
-            unsafe_allow_html=True,
-        )
-        verdict = plan.verdict()
-        if verdict.makes_it:
-            tight = verdict.tightest_row
-            st.success(
-                f"✅ **You make it.** This plan clears every cutoff. Tightest "
-                f"is **{tight.station_name}** (mile {tight.mile}), "
-                f"{formatter.format_duration(tight.buffer_minutes)} to spare."
-            )
-        else:
-            missed = verdict.first_missed_row
-            st.error(
-                f"⛔ **This plan misses the cutoff at {missed.station_name}** "
-                f"(mile {missed.mile}) by "
-                f"{formatter.format_duration(-missed.buffer_minutes)}. "
-                f"Run faster or trim stops."
-            )
-        st.markdown(
-            f"**Start:** {formatter.format_clock_time(start_time)} &nbsp;|&nbsp; "
-            f"**Running pace:** {formatter.format_pace(plan.pace_per_mile_minutes)} &nbsp;|&nbsp; "
-            f"**Expected finish:** {formatter.format_clock_time(finish_row.target_arrival_time)}"
-        )
+        self._render_summary(plan, running_minutes, start_time, formatter)
 
         self._render_chart(plan, start_hour, start_minute)
 
@@ -244,47 +208,9 @@ class PacePlannerPage:
             help="Put the goal, the average, and every stop back to the start.",
         )
 
-        # Dots shade the Buffer cells red/yellow/green using the same cushion
-        # thresholds as the line graph, so the table and chart read the same.
-        buffer_dots = {
-            "Tight (under 30m)": "🔴",
-            "Caution (30m-1h)": "🟡",
-            "Comfortable (over 1h)": "🟢",
-        }
-        table_data = [
-            {
-                "Aid Station": (
-                    f"{row.station_name} 🎒"
-                    if "D" in station.station_type
-                    else row.station_name
-                ),
-                "Mile": row.mile,
-                "Cutoff Close": formatter.format_clock_time_with_day(
-                    row.cutoff_close_time,
-                    row.cutoff_minutes_from_start,
-                    start_hour,
-                    start_minute,
-                ),
-                "Arrival": formatter.format_clock_time_with_day(
-                    row.target_arrival_time,
-                    row.target_arrival_minutes_from_start,
-                    start_hour,
-                    start_minute,
-                ),
-                "Time at Station (min)": row.aid_minutes,
-                "Departure": formatter.format_clock_time_with_day(
-                    row.departure_time,
-                    row.departure_minutes_from_start,
-                    start_hour,
-                    start_minute,
-                ),
-                "Buffer": (
-                    f"{buffer_dots[formatter.buffer_category(row.buffer_minutes)]} "
-                    f"{formatter.format_duration(row.buffer_minutes)}"
-                ),
-            }
-            for row, station in zip(plan.rows, schedule.stations)
-        ]
+        table_data = self._build_table_rows(
+            plan, schedule, start_hour, start_minute, formatter
+        )
         edited = st.data_editor(
             table_data,
             hide_index=True,
@@ -427,6 +353,123 @@ class PacePlannerPage:
             max(current_goal_minutes + delta_minutes, min_minutes), max_minutes
         )
         return formatter.format_hours(new_goal / 60.0)
+
+    def _render_summary(
+        self,
+        plan: PacePlan,
+        running_minutes: float,
+        start_time: time,
+        formatter: DisplayFormatters,
+    ) -> None:
+        """Render the goal-time headline, the make-it/miss-it verdict, and the
+        start / running-pace / finish line.
+
+        Args:
+            plan: The computed pace plan.
+            running_minutes: Pure moving time (goal minus all aid-station time).
+            start_time: Race start time of day.
+            formatter: Display formatter for clock times and durations.
+        """
+        finish_row = plan.rows[-1]
+        total_aid_minutes = sum(row.aid_minutes for row in plan.rows)
+        st.markdown(
+            "<div style='text-align:center; line-height:1.45;'>"
+            f"<div style='font-size:2.2rem; font-weight:700; color:#1565C0;'>"
+            f"{formatter.format_duration(finish_row.target_arrival_minutes_from_start)}"
+            f"</div>"
+            f"<div style='font-size:0.8rem; color:#555; margin-top:-0.2rem;'>"
+            f"goal time</div>"
+            f"<div style='font-size:1.05rem;'>"
+            f"{formatter.format_duration(running_minutes)} running + "
+            f"{formatter.format_duration(total_aid_minutes)} at aid stations</div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        verdict = plan.verdict()
+        if verdict.makes_it:
+            tight = verdict.tightest_row
+            st.success(
+                f"✅ **You make it.** This plan clears every cutoff. Tightest "
+                f"is **{tight.station_name}** (mile {tight.mile}), "
+                f"{formatter.format_duration(tight.buffer_minutes)} to spare."
+            )
+        else:
+            missed = verdict.first_missed_row
+            st.error(
+                f"⛔ **This plan misses the cutoff at {missed.station_name}** "
+                f"(mile {missed.mile}) by "
+                f"{formatter.format_duration(-missed.buffer_minutes)}. "
+                f"Run faster or trim stops."
+            )
+        st.markdown(
+            f"**Start:** {formatter.format_clock_time(start_time)} &nbsp;|&nbsp; "
+            f"**Running pace:** {formatter.format_pace(plan.pace_per_mile_minutes)} &nbsp;|&nbsp; "
+            f"**Expected finish:** {formatter.format_clock_time(finish_row.target_arrival_time)}"
+        )
+
+    def _build_table_rows(
+        self,
+        plan: PacePlan,
+        schedule: CutoffSchedule,
+        start_hour: int,
+        start_minute: int,
+        formatter: DisplayFormatters,
+    ) -> list[dict[str, object]]:
+        """Build the aid-station table rows for the data editor.
+
+        The Buffer cell is shaded with a red/yellow/green dot using the same
+        cushion thresholds as the line graph, so the table and chart read the
+        same. Drop-bag stations get a 🎒 on their name.
+
+        Args:
+            plan: The computed pace plan, one row per aid station.
+            schedule: The cutoff schedule, used for each station's type code.
+            start_hour: Race start hour, for day-aware clock formatting.
+            start_minute: Race start minute, for day-aware clock formatting.
+            formatter: Display formatter for clock times and durations.
+
+        Returns:
+            One dict per aid station, in course order, ready for st.data_editor.
+        """
+        buffer_dots = {
+            "Tight (under 30m)": "🔴",
+            "Caution (30m-1h)": "🟡",
+            "Comfortable (over 1h)": "🟢",
+        }
+        return [
+            {
+                "Aid Station": (
+                    f"{row.station_name} 🎒"
+                    if "D" in station.station_type
+                    else row.station_name
+                ),
+                "Mile": row.mile,
+                "Cutoff Close": formatter.format_clock_time_with_day(
+                    row.cutoff_close_time,
+                    row.cutoff_minutes_from_start,
+                    start_hour,
+                    start_minute,
+                ),
+                "Arrival": formatter.format_clock_time_with_day(
+                    row.target_arrival_time,
+                    row.target_arrival_minutes_from_start,
+                    start_hour,
+                    start_minute,
+                ),
+                "Time at Station (min)": row.aid_minutes,
+                "Departure": formatter.format_clock_time_with_day(
+                    row.departure_time,
+                    row.departure_minutes_from_start,
+                    start_hour,
+                    start_minute,
+                ),
+                "Buffer": (
+                    f"{buffer_dots[formatter.buffer_category(row.buffer_minutes)]} "
+                    f"{formatter.format_duration(row.buffer_minutes)}"
+                ),
+            }
+            for row, station in zip(plan.rows, schedule.stations)
+        ]
 
     def _render_chart(
         self, plan: PacePlan, start_hour: int, start_minute: int
