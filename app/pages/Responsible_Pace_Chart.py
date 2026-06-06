@@ -87,26 +87,40 @@ class PacePlannerPage:
         schedule = CutoffSchedule(csv_path=csv_path, distance=distance)
 
         # Only offer goals up to this race's real time limit, so a runner
-        # can't pick an impossible finish. Default a few hours under the limit
-        # so the cutoff and plan lines are clearly separated on the chart.
+        # can't pick an impossible finish. The slider steps every minute so it
+        # can slide smoothly to whatever total an edited stop produces.
         total_cutoff_minutes = schedule.cutoff_minutes_from_start(start_time)[-1]
         min_minutes = 15 * 60 if distance == "100M" else 10 * 60
         default_label = "28h 00m" if distance == "100M" else "20h 00m"
         goal_options = [
             formatter.format_hours(minutes / 60.0)
-            for minutes in range(min_minutes, total_cutoff_minutes + 1, 15)
+            for minutes in range(min_minutes, total_cutoff_minutes + 1, 1)
         ]
+        # The goal time is the single source of truth for the plan, kept in our
+        # own state (not the widget key) so a stop edit can slide it without
+        # Streamlit's "can't change a widget after it renders" error.
+        goal_min_key = f"goal_min_{distance}"
+        if goal_min_key not in st.session_state:
+            st.session_state[goal_min_key] = (
+                formatter.parse_hm_label(default_label) * 60.0
+            )
         goal_label = st.select_slider(
             "Goal finish time",
             options=goal_options,
-            value=default_label,
-            key=f"goal_{distance}",
+            value=formatter.format_hours(st.session_state[goal_min_key] / 60.0),
             help=(
-                "Target finish time. This race's cutoff is "
-                f"{formatter.format_hours(total_cutoff_minutes / 60.0)}."
+                "Your total finish time: running plus every aid-station stop. "
+                "Drag it to set a finish and your running pace adjusts. Editing "
+                "a stop below slides this instead, holding your pace. The race "
+                f"cutoff is {formatter.format_hours(total_cutoff_minutes / 60.0)}."
             ),
         )
-        goal_hours = formatter.parse_hm_label(goal_label)
+        # If the runner dragged the slider, that becomes the new goal (their
+        # pace will absorb it); a stop edit sets this same state from below.
+        selected_minutes = formatter.parse_hm_label(goal_label) * 60.0
+        if selected_minutes != st.session_state[goal_min_key]:
+            st.session_state[goal_min_key] = selected_minutes
+        goal_minutes = st.session_state[goal_min_key]
         aid_col, _aid_spacer = st.columns([1, 2])
         with aid_col:
             aid_minutes = st.number_input(
@@ -120,41 +134,60 @@ class PacePlannerPage:
                 ),
             )
         st.caption(
-            "⏱️ Your goal time already includes this stop at every station. "
-            "Spend **longer** at any stop and your finish slides **later** by "
-            "that much; spend **less** and it comes in **sooner**."
+            "⏱️ Spend **longer** at any stop and your **goal time slides later** "
+            "by that much; spend **less** and it comes in **sooner**. Your "
+            "running pace stays the same — only the goal moves."
         )
 
         # Per-station aid times live in session state so the table can edit
-        # individual stops. Changing the average (or the distance) re-applies
-        # it to every station; the finish line never has a stop.
+        # individual stops; the finish line never has a stop. Changing the
+        # average rebuilds every station and slides the goal by the difference,
+        # which holds the running pace (goal = running + stops).
         station_count = len(schedule.stations)
         times_key = f"aid_times_{distance}"
         avg_key = f"aid_avg_{distance}"
         if (
             times_key not in st.session_state
             or len(st.session_state[times_key]) != station_count
-            or st.session_state.get(avg_key) != aid_minutes
         ):
             st.session_state[avg_key] = aid_minutes
             st.session_state[times_key] = PacePlan.stop_minutes_with_no_finish_stop(
                 [aid_minutes] * station_count
             )
+        elif st.session_state.get(avg_key) != aid_minutes:
+            new_times = PacePlan.stop_minutes_with_no_finish_stop(
+                [aid_minutes] * station_count
+            )
+            self._slide_goal_by_stop_change(
+                goal_min_key, st.session_state[times_key], new_times,
+                min_minutes, total_cutoff_minutes,
+            )
+            st.session_state[avg_key] = aid_minutes
+            st.session_state[times_key] = new_times
+            st.rerun()
 
+        # Goal = running + stops, so the running time is whatever is left after
+        # the stops are taken out. Pace is solved against that running time.
+        stops = st.session_state[times_key]
+        running_minutes = goal_minutes - sum(stops)
+        if running_minutes <= 0:
+            st.warning(
+                "Your aid-station time is more than your whole goal. "
+                "Trim some stops or raise the goal."
+            )
+            running_minutes = 1.0
         plan = PacePlan(
             schedule=schedule,
-            goal_hours=goal_hours,
+            goal_hours=running_minutes / 60.0,
             start_time=start_time,
-            aid_minutes_per_station=st.session_state[times_key],
-            nominal_aid_minutes=NOMINAL_AID_MINUTES,
+            aid_minutes_per_station=stops,
+            nominal_aid_minutes=0.0,
         )
 
         finish_row = plan.rows[-1]
         tightest = min(plan.rows, key=lambda r: r.buffer_minutes)
         total_aid_minutes = sum(row.aid_minutes for row in plan.rows)
-        moving_minutes = goal_hours * 60.0 - NOMINAL_AID_MINUTES * max(
-            station_count - 1, 0
-        )
+        moving_minutes = running_minutes
         longest = max(plan.rows, key=lambda row: row.aid_minutes)
         st.markdown(
             "<div style='text-align:center; line-height:1.45;'>"
@@ -172,25 +205,9 @@ class PacePlannerPage:
             "</div>",
             unsafe_allow_html=True,
         )
-        delta_minutes = (
-            finish_row.target_arrival_minutes_from_start - goal_hours * 60.0
-        )
-        if abs(delta_minutes) < 0.5:
-            st.success(f"Right on your {goal_label} goal.")
-        elif delta_minutes > 0:
-            st.warning(
-                f"**{formatter.format_duration(delta_minutes)} over** your "
-                f"{goal_label} goal — trim some stops or plan a little more "
-                f"running speed."
-            )
-        else:
-            st.info(
-                f"**{formatter.format_duration(-delta_minutes)} under** your "
-                f"{goal_label} goal — you're banking cushion."
-            )
         st.markdown(
             f"**Start:** {formatter.format_clock_time(start_time)} &nbsp;|&nbsp; "
-            f"**Required overall pace:** {formatter.format_pace(plan.pace_per_mile_minutes)} &nbsp;|&nbsp; "
+            f"**Running pace:** {formatter.format_pace(plan.pace_per_mile_minutes)} &nbsp;|&nbsp; "
             f"**Expected finish:** {formatter.format_clock_time(finish_row.target_arrival_time)}"
         )
         st.caption(
@@ -209,9 +226,14 @@ class PacePlannerPage:
             "(🎒 = drop bag). A longer stop shifts the stations after it."
         )
         if st.button("Reset all aid-station times to the average"):
-            st.session_state[times_key] = PacePlan.stop_minutes_with_no_finish_stop(
+            new_times = PacePlan.stop_minutes_with_no_finish_stop(
                 [aid_minutes] * station_count
             )
+            self._slide_goal_by_stop_change(
+                goal_min_key, st.session_state[times_key], new_times,
+                min_minutes, total_cutoff_minutes,
+            )
+            st.session_state[times_key] = new_times
             st.rerun()
 
         table_data = [
@@ -277,10 +299,41 @@ class PacePlannerPage:
             [r["Time at Station (min)"] for r in edited]
         )
         if edited_times != st.session_state[times_key]:
+            self._slide_goal_by_stop_change(
+                goal_min_key, st.session_state[times_key], edited_times,
+                min_minutes, total_cutoff_minutes,
+            )
             st.session_state[times_key] = edited_times
             st.rerun()
 
         st.divider()
+
+    def _slide_goal_by_stop_change(
+        self,
+        goal_min_key: str,
+        old_stops: list[float],
+        new_stops: list[float],
+        min_minutes: int,
+        max_minutes: int,
+    ) -> None:
+        """Slide the stored goal time by the change in total stop time.
+
+        Editing stops holds the running pace, so the goal must move by exactly
+        the change in total aid-station time (goal = running + stops). The
+        result is clamped to the race's allowed goal range.
+
+        Args:
+            goal_min_key: Session-state key holding the goal time in minutes.
+            old_stops: Per-station stop minutes before the edit.
+            new_stops: Per-station stop minutes after the edit.
+            min_minutes: Smallest allowed goal time, in minutes.
+            max_minutes: Largest allowed goal time (the race cutoff), in minutes.
+        """
+        delta = sum(new_stops) - sum(old_stops)
+        new_goal = st.session_state[goal_min_key] + delta
+        st.session_state[goal_min_key] = float(
+            min(max(new_goal, min_minutes), max_minutes)
+        )
 
     def _render_chart(
         self, plan: PacePlan, start_hour: int, start_minute: int

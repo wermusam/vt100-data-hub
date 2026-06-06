@@ -1,0 +1,55 @@
+"""Tests for the Pace Planner page's two-way goal/stop behavior.
+
+These drive the real Streamlit page through Streamlit's AppTest harness so the
+slider-and-stops wiring is exercised exactly as a runner would, without a
+browser. The model under test: goal time = running time + aid-station time.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from streamlit.testing.v1 import AppTest
+
+PACE_PAGE = str(
+    Path(__file__).parent.parent / "app" / "pages" / "Responsible_Pace_Chart.py"
+)
+
+
+class TestPacePlannerPage:
+    """The page renders and the goal slider and stops move together correctly."""
+
+    def _fresh_app(self) -> AppTest:
+        """Return a freshly run AppTest for the pace planner page."""
+        app = AppTest.from_file(PACE_PAGE, default_timeout=30)
+        app.run()
+        return app
+
+    def test_page_loads_without_exception(self) -> None:
+        """The page renders cleanly and starts at the 28h default goal."""
+        app = self._fresh_app()
+        assert not app.exception
+        assert app.select_slider[0].value == "28h 00m"
+
+    def test_raising_average_slides_goal_later(self) -> None:
+        """Raising the average stop by 2 min across 25 stops slides the goal
+        50 minutes later (28h00m -> 28h50m), holding running pace."""
+        app = self._fresh_app()
+        app.number_input[0].set_value(7.0).run()
+        assert not app.exception
+        assert app.select_slider[0].value == "28h 50m"
+
+    def test_goal_is_capped_at_the_race_cutoff(self) -> None:
+        """Stops big enough to push past 30h clamp the goal at the cutoff."""
+        app = self._fresh_app()
+        app.number_input[0].set_value(15.0).run()
+        assert not app.exception
+        assert app.select_slider[0].value == "30h 00m"
+
+    def test_dragging_the_slider_leaves_stops_untouched(self) -> None:
+        """Dragging the goal re-paces running; it must not change any stop."""
+        app = self._fresh_app()
+        before = list(app.session_state["aid_times_100M"])
+        app.select_slider[0].set_value("26h 00m").run()
+        assert not app.exception
+        assert app.session_state["aid_times_100M"] == before
