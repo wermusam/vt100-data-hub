@@ -86,6 +86,25 @@ class TestPacePlan:
         first = plan.rows[0]
         assert first.cutoff_window_minutes == 135
 
+    def test_section_paces_are_not_uniform(self) -> None:
+        """The plan paces each section to its own cutoff window, so the
+        required pace changes station to station — it is not one flat pace
+        for the whole race ('you go from pace to pace')."""
+        plan = self._make_plan(goal_hours=30.0)
+        paces = [
+            round(row.your_section_pace_min_per_mile, 2)
+            for row in plan.rows
+            if row.section_distance_miles > 0
+        ]
+        # More than one distinct section pace: the course is genuinely
+        # paced unevenly, not at a single average.
+        assert len(set(paces)) > 1
+        # At a 30-hour goal the moving budget equals the cutoff window exactly,
+        # so each section's pace is its cutoff window divided by its distance.
+        first = plan.rows[0]
+        expected = first.cutoff_window_minutes / first.section_distance_miles
+        assert abs(first.your_section_pace_min_per_mile - expected) < 0.01
+
 
 class TestPacePlanWithAidStationTime:
     """Aid-station time on top of the goal.

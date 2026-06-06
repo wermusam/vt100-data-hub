@@ -141,6 +141,83 @@ class TestRunnersWithNFinishes:
         assert years == [2015, 2016, 2017, 2018, 2019]
 
 
+class TestGroupingByDuvIdNotName:
+    """The 4-of-8 rule groups by DUV runner ID, never by name.
+
+    This is the accuracy guarantee behind the race director's early-entry
+    list: two different people who share a name must not be merged into one
+    qualifier, and one person whose printed name changes across years (e.g.
+    a marriage) must not be split into two.
+    """
+
+    def _queries(self, results: list[RaceResult]) -> RunnerQueries:
+        """Build a RunnerQueries backed by an in-memory DB with the given data."""
+        connection = sqlite3.connect(":memory:")
+        storage = ResultStorage(connection)
+        storage.create_schema()
+        storage.save_results(results)
+        return RunnerQueries(connection=connection, registry=DUVEventRegistry())
+
+    def test_same_name_different_ids_stay_separate_runners(self) -> None:
+        """Two different people both named 'Smith, John' (IDs 5001 and 5002),
+        each with 4 finishes, must show up as two separate qualifiers — not one
+        merged runner with 8. Grouping by name would wrongly collapse them."""
+        results: list[RaceResult] = []
+        for year in [2015, 2016, 2017, 2018]:
+            results.append(
+                RaceResult(
+                    year=year,
+                    distance="100M",
+                    runner_name="Smith, John",
+                    status="FINISH",
+                    duv_runner_id=5001,
+                )
+            )
+        for year in [2019, 2022, 2024, 2025]:
+            results.append(
+                RaceResult(
+                    year=year,
+                    distance="100M",
+                    runner_name="Smith, John",
+                    status="FINISH",
+                    duv_runner_id=5002,
+                )
+            )
+        rows = self._queries(results).runners_with_n_finishes(
+            n=4, distance="100M", last_n_editions=8
+        )
+        smiths = [r for r in rows if r[0] == "Smith, John"]
+        assert len(smiths) == 2
+        assert all(finish_count == 4 for _, finish_count, _, _ in smiths)
+
+    def test_name_change_under_one_id_stays_one_runner(self) -> None:
+        """One runner (ID 6001) whose printed name changes across years is still
+        a single qualifier with all four finishes — not two split records."""
+        results: list[RaceResult] = []
+        for year, name in [
+            (2015, "Maiden, Jane"),
+            (2016, "Maiden, Jane"),
+            (2017, "Married, Jane"),
+            (2018, "Married, Jane"),
+        ]:
+            results.append(
+                RaceResult(
+                    year=year,
+                    distance="100M",
+                    runner_name=name,
+                    status="FINISH",
+                    duv_runner_id=6001,
+                )
+            )
+        rows = self._queries(results).runners_with_n_finishes(
+            n=4, distance="100M", last_n_editions=8
+        )
+        jane_rows = [r for r in rows if r[1] == 4]
+        assert len(jane_rows) == 1
+        years = sorted(int(y) for y in jane_rows[0][3].split(","))
+        assert years == [2015, 2016, 2017, 2018]
+
+
 class TestRunnersWhoDidBoth:
     """Tests for RunnerQueries.runners_who_did_both_distances.
 
