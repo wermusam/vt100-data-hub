@@ -96,18 +96,23 @@ class PacePlannerPage:
             formatter.format_hours(minutes / 60.0)
             for minutes in range(min_minutes, total_cutoff_minutes + 1, 1)
         ]
-        # The goal time is the single source of truth for the plan, kept in our
-        # own state (not the widget key) so a stop edit can slide it without
-        # Streamlit's "can't change a widget after it renders" error.
-        goal_min_key = f"goal_min_{distance}"
-        if goal_min_key not in st.session_state:
-            st.session_state[goal_min_key] = (
-                formatter.parse_hm_label(default_label) * 60.0
-            )
+        # The slider itself holds the goal (a keyed widget, so it stays put
+        # when the runner drags it). Stop edits and Reset move it by queueing a
+        # "pending" value that is applied here, before the widget is created —
+        # the only moment Streamlit lets a widget's value be set from code.
+        goal_key = f"goal_slider_{distance}"
+        pending_key = f"pending_goal_{distance}"
+        note_key = f"last_note_{distance}"
+        if pending_key in st.session_state:
+            st.session_state[goal_key] = st.session_state.pop(pending_key)
+        if goal_key not in st.session_state:
+            st.session_state[goal_key] = default_label
         goal_label = st.select_slider(
             "Goal finish time",
             options=goal_options,
-            value=formatter.format_hours(st.session_state[goal_min_key] / 60.0),
+            key=goal_key,
+            on_change=self._on_goal_drag,
+            args=(distance,),
             help=(
                 "Your total finish time: running plus every aid-station stop. "
                 "Drag it to set a finish and your running pace adjusts. Editing "
@@ -115,12 +120,7 @@ class PacePlannerPage:
                 f"cutoff is {formatter.format_hours(total_cutoff_minutes / 60.0)}."
             ),
         )
-        # If the runner dragged the slider, that becomes the new goal (their
-        # pace will absorb it); a stop edit sets this same state from below.
-        selected_minutes = formatter.parse_hm_label(goal_label) * 60.0
-        if selected_minutes != st.session_state[goal_min_key]:
-            st.session_state[goal_min_key] = selected_minutes
-        goal_minutes = st.session_state[goal_min_key]
+        goal_minutes = formatter.parse_hm_label(goal_label) * 60.0
         aid_col, _aid_spacer = st.columns([1, 2])
         with aid_col:
             avg_input_key = f"avg_input_{distance}"
@@ -142,6 +142,8 @@ class PacePlannerPage:
             "by that much; spend **less** and it comes in **sooner**. Your "
             "running pace stays the same; only the goal moves."
         )
+        if st.session_state.get(note_key):
+            st.info(st.session_state[note_key])
 
         # Per-station aid times live in session state so the table can edit
         # individual stops; the finish line never has a stop. Changing the
@@ -162,12 +164,15 @@ class PacePlannerPage:
             new_times = PacePlan.stop_minutes_with_no_finish_stop(
                 [aid_minutes] * station_count
             )
-            self._slide_goal_by_stop_change(
-                goal_min_key, st.session_state[times_key], new_times,
-                min_minutes, total_cutoff_minutes,
+            delta = sum(new_times) - sum(st.session_state[times_key])
+            st.session_state[pending_key] = self._slid_goal_label(
+                goal_minutes, delta, min_minutes, total_cutoff_minutes, formatter
             )
             st.session_state[avg_key] = aid_minutes
             st.session_state[times_key] = new_times
+            st.session_state[note_key] = self._stop_change_note(
+                delta, "every aid station"
+            )
             st.rerun()
 
         # Goal = running + stops, so the running time is whatever is left after
@@ -235,11 +240,7 @@ class PacePlannerPage:
         st.button(
             "Reset to defaults",
             on_click=self._reset_to_defaults,
-            args=(
-                distance,
-                station_count,
-                formatter.parse_hm_label(default_label) * 60.0,
-            ),
+            args=(distance, station_count, default_label),
             help="Put the goal, the average, and every stop back to the start.",
         )
 
@@ -316,29 +317,30 @@ class PacePlannerPage:
             [r["Time at Station (min)"] for r in edited]
         )
         if edited_times != st.session_state[times_key]:
-            self._slide_goal_by_stop_change(
-                goal_min_key, st.session_state[times_key], edited_times,
-                min_minutes, total_cutoff_minutes,
+            delta = sum(edited_times) - sum(st.session_state[times_key])
+            st.session_state[pending_key] = self._slid_goal_label(
+                goal_minutes, delta, min_minutes, total_cutoff_minutes, formatter
             )
             st.session_state[times_key] = edited_times
+            st.session_state[note_key] = self._stop_change_note(delta, "that stop")
             st.rerun()
 
         st.divider()
 
     def _reset_to_defaults(
-        self, distance: str, station_count: int, default_minutes: float
+        self, distance: str, station_count: int, default_label: str
     ) -> None:
         """Put every control for a distance back to its starting defaults.
 
         Wired to the Reset button's on_click. Running inside a callback (before
         the script reruns) is what lets it set the average-input and goal-slider
-        state without Streamlit's "modified after the widget was instantiated"
+        widgets without Streamlit's "modified after the widget was instantiated"
         error.
 
         Args:
             distance: "100M" or "100K", used to key the per-distance state.
             station_count: Number of aid stations, for rebuilding stop times.
-            default_minutes: The distance's default goal time, in minutes.
+            default_label: The distance's default goal time, e.g. "28h 00m".
         """
         st.session_state[f"avg_input_{distance}"] = NOMINAL_AID_MINUTES
         st.session_state[f"aid_avg_{distance}"] = NOMINAL_AID_MINUTES
@@ -347,34 +349,84 @@ class PacePlannerPage:
                 [NOMINAL_AID_MINUTES] * station_count
             )
         )
-        st.session_state[f"goal_min_{distance}"] = default_minutes
+        st.session_state[f"goal_slider_{distance}"] = default_label
+        st.session_state[f"last_note_{distance}"] = (
+            "↩️ Reset to defaults: goal and every aid-station stop are back "
+            "to the start."
+        )
 
-    def _slide_goal_by_stop_change(
-        self,
-        goal_min_key: str,
-        old_stops: list[float],
-        new_stops: list[float],
-        min_minutes: int,
-        max_minutes: int,
-    ) -> None:
-        """Slide the stored goal time by the change in total stop time.
+    def _on_goal_drag(self, distance: str) -> None:
+        """Note that the runner dragged the goal slider (re-paces running).
 
-        Editing stops holds the running pace, so the goal must move by exactly
-        the change in total aid-station time (goal = running + stops). The
-        result is clamped to the race's allowed goal range.
+        Wired to the slider's on_change, so it fires only on a real drag, not
+        when a stop edit or Reset moves the slider from code.
 
         Args:
-            goal_min_key: Session-state key holding the goal time in minutes.
-            old_stops: Per-station stop minutes before the edit.
-            new_stops: Per-station stop minutes after the edit.
+            distance: "100M" or "100K", used to key the per-distance state.
+        """
+        label = st.session_state[f"goal_slider_{distance}"]
+        st.session_state[f"last_note_{distance}"] = (
+            f"🎯 Goal set to **{label}**. Your running pace adjusted to match; "
+            f"your aid-station stops are unchanged."
+        )
+
+    @staticmethod
+    def _stop_change_note(delta_minutes: float, what: str) -> str:
+        """Phrase the goal-time change caused by editing aid-station time.
+
+        Args:
+            delta_minutes: Change in total stop time; positive added time,
+                negative trimmed it.
+            what: Short phrase naming what changed, e.g. "that stop".
+
+        Returns:
+            A one-line note describing the effect on the goal time, or an empty
+            string when the total did not actually move.
+        """
+        minutes = int(round(abs(delta_minutes)))
+        unit = "minute" if minutes == 1 else "minutes"
+        if delta_minutes > 0:
+            return (
+                f"⏱️ You added time at {what}, so your goal time slid "
+                f"**{minutes} {unit} later**. Your running pace is unchanged."
+            )
+        if delta_minutes < 0:
+            return (
+                f"⏱️ You trimmed time at {what}, so your goal time came in "
+                f"**{minutes} {unit} sooner**. Your running pace is unchanged."
+            )
+        return ""
+
+    @staticmethod
+    def _slid_goal_label(
+        current_goal_minutes: float,
+        delta_minutes: float,
+        min_minutes: int,
+        max_minutes: int,
+        formatter: DisplayFormatters,
+    ) -> str:
+        """Return the goal-slider label after a stop change slides the goal.
+
+        Editing stops holds the running pace, so the goal moves by exactly the
+        change in total aid-station time (goal = running + stops), clamped to
+        the race's allowed range. The result is a slider option label, queued
+        as the pending goal and applied before the slider renders next run.
+
+        Args:
+            current_goal_minutes: The goal time now, in minutes.
+            delta_minutes: Change in total stop time; positive adds, negative
+                trims.
             min_minutes: Smallest allowed goal time, in minutes.
             max_minutes: Largest allowed goal time (the race cutoff), in minutes.
+            formatter: Used to format the new goal as an "Xh YYm" label.
+
+        Returns:
+            The clamped new goal as a slider option label, e.g. "28h 50m".
         """
-        delta = sum(new_stops) - sum(old_stops)
-        new_goal = st.session_state[goal_min_key] + delta
-        st.session_state[goal_min_key] = float(
-            min(max(new_goal, min_minutes), max_minutes)
+        new_goal = min(
+            max(current_goal_minutes + delta_minutes, min_minutes), max_minutes
         )
+        return formatter.format_hours(new_goal / 60.0)
 
     def _render_chart(
         self, plan: PacePlan, start_hour: int, start_minute: int

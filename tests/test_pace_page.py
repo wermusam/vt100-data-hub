@@ -16,6 +16,12 @@ PACE_PAGE = str(
 )
 
 
+def st_note(app: AppTest, distance: str = "100M") -> str:
+    """Return the page's current 'what changed' note for a distance, or ''."""
+    key = f"last_note_{distance}"
+    return app.session_state[key] if key in app.session_state else ""
+
+
 class TestPacePlannerPage:
     """The page renders and the goal slider and stops move together correctly."""
 
@@ -83,3 +89,36 @@ class TestPacePlannerPage:
         app.number_input[0].set_value(8.0).run()
         assert not app.exception
         assert app.select_slider[0].value != "20h 00m"
+
+    def test_reset_works_after_dragging_the_slider(self) -> None:
+        """Reset must restore the goal even after the slider was dragged — the
+        case the keyed slider fixes."""
+        app = self._fresh_app()
+        app.select_slider[0].set_value("25h 00m").run()
+        app.button[0].click().run()
+        assert not app.exception
+        assert app.select_slider[0].value == "28h 00m"
+        assert set(app.session_state["aid_times_100M"][:-1]) == {5.0}
+
+    def test_average_slides_goal_from_the_dragged_value(self) -> None:
+        """After dragging to 26h, raising the average by 2 min across 25 stops
+        slides the goal to 26h50m, not back from 28h."""
+        app = self._fresh_app()
+        app.select_slider[0].set_value("26h 00m").run()
+        app.number_input[0].set_value(7.0).run()
+        assert not app.exception
+        assert app.select_slider[0].value == "26h 50m"
+
+    def test_dragging_the_slider_shows_a_repace_note(self) -> None:
+        """Dragging the goal posts a note that running re-paced, stops held."""
+        app = self._fresh_app()
+        app.select_slider[0].set_value("26h 00m").run()
+        assert not app.exception
+        assert "running pace adjusted" in st_note(app)
+
+    def test_raising_the_average_shows_an_added_time_note(self) -> None:
+        """Raising the average posts a note that the goal time slid later."""
+        app = self._fresh_app()
+        app.number_input[0].set_value(6.0).run()
+        assert not app.exception
+        assert "slid" in st_note(app) and "later" in st_note(app)
