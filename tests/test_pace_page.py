@@ -53,3 +53,30 @@ class TestPacePlannerPage:
         app.select_slider[0].set_value("26h 00m").run()
         assert not app.exception
         assert app.session_state["aid_times_100M"] == before
+
+    def test_reset_button_restores_the_average(self) -> None:
+        """After editing the average, Reset puts every stop back to it."""
+        app = self._fresh_app()
+        app.number_input[0].set_value(8.0).run()
+        app.button[0].set_value(True).run()
+        assert not app.exception
+        # Every station but the finish line sits at the 8-minute average.
+        assert set(app.session_state["aid_times_100M"][:-1]) == {8.0}
+        assert app.session_state["aid_times_100M"][-1] == 0.0
+
+    def test_100k_distance_loads_and_renders_a_verdict(self) -> None:
+        """Switching to the 100K loads cleanly with its own 20h default and a
+        make-it/miss-it verdict."""
+        app = self._fresh_app()
+        app.radio[0].set_value("100K").run()
+        assert not app.exception
+        assert app.select_slider[0].value == "20h 00m"
+        assert app.success or app.error
+
+    def test_100k_average_change_slides_its_goal(self) -> None:
+        """On the 100K, raising the average stop slides the 100K goal later."""
+        app = self._fresh_app()
+        app.radio[0].set_value("100K").run()
+        app.number_input[0].set_value(8.0).run()
+        assert not app.exception
+        assert app.select_slider[0].value != "20h 00m"
