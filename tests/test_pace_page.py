@@ -54,14 +54,17 @@ class TestPacePlannerPage:
         assert not app.exception
         assert app.session_state["aid_times_100M"] == before
 
-    def test_reset_button_restores_the_average(self) -> None:
-        """After editing the average, Reset puts every stop back to it."""
+    def test_reset_button_restores_defaults(self) -> None:
+        """After changing the average and the goal, Reset returns the goal to
+        28h, the average to 5, and every stop to the 5-minute default."""
         app = self._fresh_app()
-        app.number_input[0].set_value(8.0).run()
-        app.button[0].set_value(True).run()
+        app.number_input[0].set_value(9.0).run()
+        app.select_slider[0].set_value("25h 00m").run()
+        app.button[0].click().run()
         assert not app.exception
-        # Every station but the finish line sits at the 8-minute average.
-        assert set(app.session_state["aid_times_100M"][:-1]) == {8.0}
+        assert app.select_slider[0].value == "28h 00m"
+        assert app.number_input[0].value == 5.0
+        assert set(app.session_state["aid_times_100M"][:-1]) == {5.0}
         assert app.session_state["aid_times_100M"][-1] == 0.0
 
     def test_100k_distance_loads_and_renders_a_verdict(self) -> None:

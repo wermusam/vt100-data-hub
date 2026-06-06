@@ -123,14 +123,18 @@ class PacePlannerPage:
         goal_minutes = st.session_state[goal_min_key]
         aid_col, _aid_spacer = st.columns([1, 2])
         with aid_col:
+            avg_input_key = f"avg_input_{distance}"
+            if avg_input_key not in st.session_state:
+                st.session_state[avg_input_key] = NOMINAL_AID_MINUTES
             aid_minutes = st.number_input(
                 "Avg time at each aid station (minutes)",
                 min_value=0.0,
-                value=NOMINAL_AID_MINUTES,
                 step=1.0,
+                key=avg_input_key,
                 help=(
                     "Sets the time at every station. Override individual stops "
-                    "(drop bags) in the table below; Reset re-applies this average."
+                    "(drop bags) in the table below; Reset returns everything "
+                    "to the defaults."
                 ),
             )
         st.caption(
@@ -228,16 +232,16 @@ class PacePlannerPage:
             "**Aid station plan.** Edit **Time at Station** for any stop "
             "(🎒 = drop bag). A longer stop shifts the stations after it."
         )
-        if st.button("Reset all aid-station times to the average"):
-            new_times = PacePlan.stop_minutes_with_no_finish_stop(
-                [aid_minutes] * station_count
-            )
-            self._slide_goal_by_stop_change(
-                goal_min_key, st.session_state[times_key], new_times,
-                min_minutes, total_cutoff_minutes,
-            )
-            st.session_state[times_key] = new_times
-            st.rerun()
+        st.button(
+            "Reset to defaults",
+            on_click=self._reset_to_defaults,
+            args=(
+                distance,
+                station_count,
+                formatter.parse_hm_label(default_label) * 60.0,
+            ),
+            help="Put the goal, the average, and every stop back to the start.",
+        )
 
         table_data = [
             {
@@ -310,6 +314,30 @@ class PacePlannerPage:
             st.rerun()
 
         st.divider()
+
+    def _reset_to_defaults(
+        self, distance: str, station_count: int, default_minutes: float
+    ) -> None:
+        """Put every control for a distance back to its starting defaults.
+
+        Wired to the Reset button's on_click. Running inside a callback (before
+        the script reruns) is what lets it set the average-input and goal-slider
+        state without Streamlit's "modified after the widget was instantiated"
+        error.
+
+        Args:
+            distance: "100M" or "100K", used to key the per-distance state.
+            station_count: Number of aid stations, for rebuilding stop times.
+            default_minutes: The distance's default goal time, in minutes.
+        """
+        st.session_state[f"avg_input_{distance}"] = NOMINAL_AID_MINUTES
+        st.session_state[f"aid_avg_{distance}"] = NOMINAL_AID_MINUTES
+        st.session_state[f"aid_times_{distance}"] = (
+            PacePlan.stop_minutes_with_no_finish_stop(
+                [NOMINAL_AID_MINUTES] * station_count
+            )
+        )
+        st.session_state[f"goal_min_{distance}"] = default_minutes
 
     def _slide_goal_by_stop_change(
         self,
