@@ -87,13 +87,39 @@ class CutoffSchedule:
     def _parse_csv(self, csv_path: Path) -> list[AidStationCutoff]:
         """Read the CSV (with VT100's 3-row header) into AidStationCutoff objects.
 
-        Skips rows without a station_number — that filters out trailing
-        legend/footer rows the sheet uses to explain the type codes.
+        Keeps every aid station and the finish line, while dropping the trailing
+        legend/footer rows the sheet uses to explain the type codes. A row counts
+        as a station if it has a station number, or — like the 100K finish line,
+        which carries no number — a name and a numeric mileage.
         """
         with open(csv_path, newline="", encoding="utf-8") as f:
             rows = list(csv.reader(f))
-        data_rows = [row for row in rows[3:] if row and row[0].strip()]
+        data_rows = [row for row in rows[3:] if self._is_station_row(row)]
         return [self._parse_row(row) for row in data_rows]
+
+    @staticmethod
+    def _is_station_row(row: list[str]) -> bool:
+        """Whether a CSV row describes an aid station or the finish line.
+
+        Args:
+            row: A raw CSV row.
+
+        Returns:
+            True if the row has a station number, or has a name and a numeric
+            mileage (the finish line). Legend/footer rows, which have neither a
+            number nor a numeric mileage, return False.
+        """
+        if len(row) < 3:
+            return False
+        if row[0].strip():
+            return True
+        if not row[1].strip():
+            return False
+        try:
+            float(row[2])
+        except ValueError:
+            return False
+        return True
 
     def _parse_row(self, row: list[str]) -> AidStationCutoff:
         """Convert one CSV row to an AidStationCutoff."""

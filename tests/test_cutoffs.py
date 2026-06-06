@@ -10,6 +10,9 @@ from vt100_data_hub.cutoffs import CutoffSchedule
 CUTOFFS_2026_100M_PATH = (
     Path(__file__).parent.parent / "data" / "cutoffs_2026_100m.csv"
 )
+CUTOFFS_2026_100K_PATH = (
+    Path(__file__).parent.parent / "data" / "cutoffs_2026_100k.csv"
+)
 
 
 class TestCutoffSchedule:
@@ -50,6 +53,39 @@ class TestCutoffSchedule:
         last = schedule.stations[-1]
         assert last.name == "FINISH LINE"
         assert last.mileage == 100.0
+
+
+class TestCutoffSchedule100K:
+    """The 100K schedule keeps its finish line, which carries no station number.
+
+    These guard the parser bug where a finish row with an empty station-number
+    column was dropped, leaving the 100K short at mile 57.7 / 23.7h instead of
+    its real 62.2 miles and 25-hour cutoff.
+    """
+
+    def _load_2026_100k(self) -> CutoffSchedule:
+        """Load the saved 2026 100K cutoff schedule."""
+        return CutoffSchedule(csv_path=CUTOFFS_2026_100K_PATH, distance="100K")
+
+    def test_finish_line_is_included(self) -> None:
+        """The last station is the FINISH LINE at mile 62.2 (a full 100K)."""
+        schedule = self._load_2026_100k()
+        last = schedule.stations[-1]
+        assert last.name == "FINISH LINE"
+        assert last.mileage == 62.2
+
+    def test_finish_is_25_hours_from_9am_start(self) -> None:
+        """The 100K finish (10 AM Sunday) is 1500 minutes — 25h — from 9 AM."""
+        schedule = self._load_2026_100k()
+        minutes = schedule.cutoff_minutes_from_start(time(9, 0))
+        assert minutes[-1] == 1500
+
+    def test_legend_rows_are_still_skipped(self) -> None:
+        """Footer/legend rows must not be parsed as stations."""
+        schedule = self._load_2026_100k()
+        names = [station.name for station in schedule.stations]
+        assert not any(name.startswith("U =") for name in names)
+        assert not any("Dogs are not allowed" in name for name in names)
 
 
 class TestCutoffMinutesFromStart:
