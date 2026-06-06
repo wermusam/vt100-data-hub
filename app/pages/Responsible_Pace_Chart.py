@@ -25,8 +25,9 @@ CUTOFFS_100K_PATH = (
 
 # The stop time the goal is measured against. A goal finish assumes this many
 # minutes at every station; planning more (a longer average or a drop bag)
-# pushes the finish later, planning less pulls it in.
-NOMINAL_AID_MINUTES = 3.0
+# pushes the finish later, planning less pulls it in. Five minutes is a calmer,
+# more realistic default than a rushed three.
+NOMINAL_AID_MINUTES = 5.0
 
 
 class PacePlannerPage:
@@ -118,6 +119,11 @@ class PacePlannerPage:
                     "(drop bags) in the table below; Reset re-applies this average."
                 ),
             )
+        st.caption(
+            "⏱️ Your goal time already includes this stop at every station. "
+            "Spend **longer** at any stop and your finish slides **later** by "
+            "that much; spend **less** and it comes in **sooner**."
+        )
 
         # Per-station aid times live in session state so the table can edit
         # individual stops. Changing the average (or the distance) re-applies
@@ -167,6 +173,22 @@ class PacePlannerPage:
             "</div>",
             unsafe_allow_html=True,
         )
+        delta_minutes = (
+            finish_row.target_arrival_minutes_from_start - goal_hours * 60.0
+        )
+        if abs(delta_minutes) < 0.5:
+            st.success(f"Right on your {goal_label} goal.")
+        elif delta_minutes > 0:
+            st.warning(
+                f"**{formatter.format_duration(delta_minutes)} over** your "
+                f"{goal_label} goal — trim some stops or plan a little more "
+                f"running speed."
+            )
+        else:
+            st.info(
+                f"**{formatter.format_duration(-delta_minutes)} under** your "
+                f"{goal_label} goal — you're banking cushion."
+            )
         st.markdown(
             f"**Start:** {formatter.format_clock_time(start_time)} &nbsp;|&nbsp; "
             f"**Required overall pace:** {formatter.format_pace(plan.pace_per_mile_minutes)} &nbsp;|&nbsp; "
