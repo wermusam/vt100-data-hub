@@ -185,10 +185,8 @@ class PacePlannerPage:
         )
 
         finish_row = plan.rows[-1]
-        tightest = min(plan.rows, key=lambda r: r.buffer_minutes)
         total_aid_minutes = sum(row.aid_minutes for row in plan.rows)
         moving_minutes = running_minutes
-        longest = max(plan.rows, key=lambda row: row.aid_minutes)
         st.markdown(
             "<div style='text-align:center; line-height:1.45;'>"
             f"<div style='font-size:2.2rem; font-weight:700; color:#1565C0;'>"
@@ -199,9 +197,6 @@ class PacePlannerPage:
             f"<div style='font-size:1.05rem;'>"
             f"{formatter.format_duration(moving_minutes)} running + "
             f"{formatter.format_duration(total_aid_minutes)} at aid stations</div>"
-            f"<div style='font-size:0.9rem; color:#555;'>Longest stop: "
-            f"{formatter.format_duration(longest.aid_minutes)} at "
-            f"{longest.station_name}</div>"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -209,14 +204,6 @@ class PacePlannerPage:
             f"**Start:** {formatter.format_clock_time(start_time)} &nbsp;|&nbsp; "
             f"**Running pace:** {formatter.format_pace(plan.pace_per_mile_minutes)} &nbsp;|&nbsp; "
             f"**Expected finish:** {formatter.format_clock_time(finish_row.target_arrival_time)}"
-        )
-        st.caption(
-            "These are estimates to plan with, not a guarantee. Adjust any "
-            "stop in the table to match your own race."
-        )
-        st.markdown(
-            f"**Tightest buffer:** {tightest.station_name} at mile {tightest.mile}, "
-            f"{formatter.format_duration(tightest.buffer_minutes)}"
         )
 
         self._render_chart(plan, start_hour, start_minute)
