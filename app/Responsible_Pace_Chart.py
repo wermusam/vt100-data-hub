@@ -157,10 +157,8 @@ class PacePlannerPage:
             )
         st.caption(
             f"⏱️ The first {int(NOMINAL_AID_MINUTES)} minutes at each stop are "
-            "built into the pace, so the plan stays ahead of every cutoff. Spend "
-            "**more** than that and it adds to your finish and eats your cushion; "
-            "spend **less** and you gain cushion. The goal slider changes only "
-            "your running pace, never your stops."
+            "built into the pace. Spend **more** at any stop and it eats your "
+            "cushion (too much shows a red miss); spend **less** and you gain it."
         )
 
         # Per-station aid times live in session state so the table can edit
@@ -234,6 +232,13 @@ class PacePlannerPage:
             ],
             column_config={
                 "Mile": st.column_config.NumberColumn(format="%.1f"),
+                "Your Pace": st.column_config.TextColumn(
+                    help=(
+                        "The slowest pace for this leg that still gets you to "
+                        "the next cutoff on time. It changes leg to leg because "
+                        "the cutoffs are spaced unevenly."
+                    ),
+                ),
                 "Time at Station (min)": st.column_config.NumberColumn(
                     min_value=0, step=1
                 ),
@@ -329,11 +334,6 @@ class PacePlannerPage:
                 f"{formatter.format_duration(-missed.buffer_minutes)}. "
                 f"Run faster or trim stops."
             )
-        st.caption(
-            "Make or miss is based on **arriving** before each cutoff. "
-            "Stations where you'd arrive in time but leave after closing are "
-            "noted below, so you know where not to linger."
-        )
         leave_late = [
             row
             for row in plan.rows
@@ -353,9 +353,9 @@ class PacePlannerPage:
             f"**Expected finish:** {formatter.format_clock_time(finish_row.target_arrival_time)}"
         )
         st.caption(
-            "This is the pace that stays ahead of the cutoffs. Most finishers "
-            "run the first half with more cushion than this and slow later, so "
-            "treat it as the floor, not the plan."
+            "Make or miss is based on **arriving** before each cutoff. This pace "
+            "is the floor; most finishers bank time in the first half and slow "
+            "later."
         )
 
     def _build_table_rows(
