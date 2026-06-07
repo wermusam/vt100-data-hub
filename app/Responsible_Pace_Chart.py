@@ -186,6 +186,7 @@ class PacePlannerPage:
             start_time=start_time,
             aid_minutes_per_station=stops,
             nominal_aid_minutes=NOMINAL_AID_MINUTES,
+            arrival_margin_minutes=NOMINAL_AID_MINUTES,
         )
 
         self._render_summary(plan, start_time, formatter)

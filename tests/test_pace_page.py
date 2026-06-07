@@ -87,16 +87,16 @@ class TestPacePlannerPage:
         assert app.select_slider[0].value == "28h 00m"
         assert set(app.session_state["aid_times_100M"][:-1]) == {5.0}
 
-    def test_verdict_is_arrival_based_with_a_leave_late_note(self) -> None:
-        """At the 30h goal you reach every cutoff exactly (make it on arrival),
-        but the 5-min stops mean you leave after close, so the arrival caption
-        and the leave-late note both show."""
+    def test_thirty_hour_floor_arrives_early_and_leaves_on_time(self) -> None:
+        """At the 30h floor with 5-min stops you arrive 5 min before every cutoff
+        and leave right at it — so you make it, the arrival caption shows, and
+        there is NO leave-after-closing warning."""
         app = self._fresh_app()
         app.select_slider[0].set_value("30h 00m").run()
         assert not app.exception
         assert app.success
         assert any("arriving" in c.value for c in app.caption)
-        assert any("leave after closing" in w.value for w in app.warning)
+        assert not any("leave after closing" in w.value for w in app.warning)
 
     def test_switching_distance_and_back_starts_clean(self) -> None:
         """Customizing 100M, switching to 100K, and returning must give 100M's

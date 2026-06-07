@@ -380,9 +380,10 @@ class TestPacePlanWithAidStationTime:
 
 
 class TestCutoffAnchoredModel:
-    """The cutoff-anchored model: arrivals are the cutoff clock scaled by the
-    goal, the baseline stop is absorbed so the default never misses, and stop
-    time above the baseline is additive and can cause a miss."""
+    """The agreed model: at your goal you arrive a fixed margin (the baseline
+    stop) before every intermediate cutoff and the finish is the endpoint. Stop
+    time above the baseline is additive and can cause a miss; a faster goal grows
+    the cushion."""
 
     BASELINE = 5.0
 
@@ -397,6 +398,7 @@ class TestCutoffAnchoredModel:
             start_time=time(4, 0),
             aid_minutes_per_station=stops,
             nominal_aid_minutes=self.BASELINE,
+            arrival_margin_minutes=self.BASELINE,
         )
 
     def _baseline_stops(self) -> list[float]:
@@ -415,12 +417,22 @@ class TestCutoffAnchoredModel:
             assert plan.verdict().makes_it is True, f"goal {goal} missed"
             assert min(r.buffer_minutes for r in plan.rows) >= -1e-9
 
-    def test_30h_baseline_rides_the_cutoffs_and_finishes_at_30h(self) -> None:
-        """At the 30h goal you arrive exactly at every cutoff (buffer 0) and the
-        finish lands at 1800 minutes."""
+    def test_30h_floor_arrives_5_min_before_each_cutoff_finishes_at_30h(
+        self,
+    ) -> None:
+        """At the 30h floor you arrive the 5-min margin before every intermediate
+        cutoff, and the finish (the endpoint) lands at 1800 minutes."""
         plan = self._plan(30.0, self._baseline_stops())
-        assert min(r.buffer_minutes for r in plan.rows) == 0.0
+        intermediate = [r.buffer_minutes for r in plan.rows[:-1]]
+        assert all(abs(b - 5.0) < 1e-9 for b in intermediate)
         assert plan.rows[-1].target_arrival_minutes_from_start == 1800.0
+
+    def test_30h_floor_departs_by_each_cutoff(self) -> None:
+        """At the 30h floor you also leave each station by its close (no late
+        departures), since arrival is 5 min early and the stop is 5 min."""
+        plan = self._plan(30.0, self._baseline_stops())
+        for row in plan.rows[:-1]:
+            assert row.departure_minutes_from_start <= row.cutoff_minutes_from_start + 1e-9
 
     def test_faster_goal_grows_the_cushion(self) -> None:
         """A faster goal pulls arrivals earlier, so every buffer grows."""

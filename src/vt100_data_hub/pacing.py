@@ -121,6 +121,9 @@ class PacePlan:
         nominal_aid_minutes: The baseline stop absorbed into the leg paces
             (default 0.0). Stop time above this is additive and can cause a miss;
             below this pulls arrivals in.
+        arrival_margin_minutes: How many minutes before each intermediate cutoff
+            the floor plan aims to arrive (default 0.0). The finish line gets no
+            margin — it is the endpoint you cross at the goal.
         race_distance_miles: Total race distance (from the last station's mileage).
         pace_per_mile_minutes: Overall running pace (moving only), i.e. the goal
             less the baseline stops, spread over the distance.
@@ -135,10 +138,12 @@ class PacePlan:
         aid_station_minutes: float = 0.0,
         aid_minutes_per_station: list[float] | None = None,
         nominal_aid_minutes: float = 0.0,
+        arrival_margin_minutes: float = 0.0,
     ) -> None:
         self.schedule = schedule
         self.goal_hours = goal_hours
         self.start_time = start_time
+        self.arrival_margin_minutes = arrival_margin_minutes
         self.aid_station_minutes = aid_station_minutes
         self.aid_minutes_per_station = aid_minutes_per_station
         self.nominal_aid_minutes = nominal_aid_minutes
@@ -209,10 +214,17 @@ class PacePlan:
         # Running total of stop time above the baseline; this is what shifts
         # later arrivals (the baseline itself is absorbed into the leg paces).
         extra_aid_before = 0.0
+        last_index = len(cutoffs_from_start) - 1
         for index, (station, cutoff_minutes_from_start) in enumerate(
             zip(self.schedule.stations, cutoffs_from_start)
         ):
-            arrival_minutes = cutoff_minutes_from_start * scale + extra_aid_before
+            # Aim a fixed margin before every intermediate cutoff so the floor
+            # plan arrives early and leaves on time. The finish line is the
+            # endpoint (no margin) — you cross it at the goal.
+            margin = 0.0 if index == last_index else self.arrival_margin_minutes
+            arrival_minutes = (
+                (cutoff_minutes_from_start - margin) * scale + extra_aid_before
+            )
             aid_minutes = aids[index]
             departure_minutes = arrival_minutes + aid_minutes
 
