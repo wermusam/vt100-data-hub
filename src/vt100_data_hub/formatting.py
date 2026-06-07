@@ -31,19 +31,23 @@ class DisplayFormatters:
     def buffer_category(self, minutes: float) -> str:
         """Bucket a buffer (minutes) into a cushion category for color coding.
 
+        Red means you miss the cutoff (arrive after it). Yellow means you make it
+        but with little room; green means a comfortable cushion. This matches the
+        make/miss verdict: a plan that makes every cutoff is never red.
+
         Args:
             minutes: Buffer in minutes (cutoff close minus target arrival).
                 Negative means the goal time misses that cutoff.
 
         Returns:
-            One of "Tight (under 30m)", "Caution (30m to 1h)", or
-            "Comfortable (over 1h)".
+            One of "Miss (after cutoff)", "Tight (under 30m)", or
+            "Comfortable (30m+)".
         """
+        if minutes < 0:
+            return "Miss (after cutoff)"
         if minutes < 30:
             return "Tight (under 30m)"
-        if minutes <= 60:
-            return "Caution (30m to 1h)"
-        return "Comfortable (over 1h)"
+        return "Comfortable (30m+)"
 
     def format_clock_time(self, t: time) -> str:
         """Format a time of day as '6:15 AM'.

@@ -34,28 +34,23 @@ class TestFormatName:
 class TestBufferCategory:
     """Tests for DisplayFormatters.buffer_category."""
 
-    def test_under_30_minutes_is_tight(self) -> None:
-        """A buffer below 30 minutes is Tight."""
+    def test_negative_buffer_is_a_miss(self) -> None:
+        """A negative buffer (arrive after the cutoff) is a Miss."""
+        formatter = DisplayFormatters()
+        assert formatter.buffer_category(-1) == "Miss (after cutoff)"
+        assert formatter.buffer_category(-15) == "Miss (after cutoff)"
+
+    def test_zero_to_30_minutes_is_tight(self) -> None:
+        """Making it with under 30 minutes to spare is Tight."""
         formatter = DisplayFormatters()
         assert formatter.buffer_category(0) == "Tight (under 30m)"
         assert formatter.buffer_category(29) == "Tight (under 30m)"
 
-    def test_negative_buffer_is_tight(self) -> None:
-        """A negative buffer (missed cutoff) is Tight."""
+    def test_30_minutes_or_more_is_comfortable(self) -> None:
+        """A buffer of 30 minutes or more is Comfortable."""
         formatter = DisplayFormatters()
-        assert formatter.buffer_category(-15) == "Tight (under 30m)"
-
-    def test_30_to_60_minutes_is_caution(self) -> None:
-        """A buffer from 30 to 60 minutes is Caution."""
-        formatter = DisplayFormatters()
-        assert formatter.buffer_category(30) == "Caution (30m to 1h)"
-        assert formatter.buffer_category(60) == "Caution (30m to 1h)"
-
-    def test_over_60_minutes_is_comfortable(self) -> None:
-        """A buffer over 60 minutes is Comfortable."""
-        formatter = DisplayFormatters()
-        assert formatter.buffer_category(61) == "Comfortable (over 1h)"
-        assert formatter.buffer_category(300) == "Comfortable (over 1h)"
+        assert formatter.buffer_category(30) == "Comfortable (30m+)"
+        assert formatter.buffer_category(300) == "Comfortable (30m+)"
 
 
 class TestFormatClockTime:

@@ -81,9 +81,9 @@ class PacePlannerPage:
                 "never before.\n\n"
                 "**The verdict** at the top says, in plain words, whether you "
                 "clear every cutoff and where it is tightest.\n\n"
-                "**Colors:** red means under 30 minutes of cushion, yellow "
-                "means 30 to 60 minutes, green means over an hour. The table "
-                "and the graph use the same colors."
+                "**Colors:** red means you miss that cutoff, yellow means you "
+                "make it but with under 30 minutes to spare, green means 30 "
+                "minutes or more. The table and the graph use the same colors."
             )
 
         formatter = DisplayFormatters()
@@ -383,9 +383,9 @@ class PacePlannerPage:
             One dict per aid station, in course order, ready for st.data_editor.
         """
         buffer_dots = {
-            "Tight (under 30m)": "🔴",
-            "Caution (30m to 1h)": "🟡",
-            "Comfortable (over 1h)": "🟢",
+            "Miss (after cutoff)": "🔴",
+            "Tight (under 30m)": "🟡",
+            "Comfortable (30m+)": "🟢",
         }
         return [
             {
@@ -625,9 +625,9 @@ class PacePlannerPage:
         # Cushion dots on the goal line, one trace per category so each gets
         # its own legend entry.
         cushion_colors = {
-            "Tight (under 30m)": "#C62828",
-            "Caution (30m to 1h)": "#F9A825",
-            "Comfortable (over 1h)": "#2E7D32",
+            "Miss (after cutoff)": "#C62828",
+            "Tight (under 30m)": "#F9A825",
+            "Comfortable (30m+)": "#2E7D32",
         }
         # Always add all three categories (even when empty) so the legend
         # stays stable as the goal slider changes which cushions appear.
@@ -729,8 +729,8 @@ class PacePlannerPage:
         st.caption(
             "Each station has two dots: an open dot when you arrive and a "
             "colored dot when you leave. The step between them is your time "
-            "there. The leave dot's color is your cutoff cushion: red under "
-            "30 min, amber 30 min to 1 hour, green over 1 hour. Drag a box to "
+            "there. The dot's color is your cushion: red means you miss it, "
+            "yellow under 30 min to spare, green 30 min or more. Drag a box to "
             "zoom, and double click to reset."
         )
 
