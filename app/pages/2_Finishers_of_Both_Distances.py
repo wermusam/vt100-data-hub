@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import sqlite3
 from pathlib import Path
 
@@ -39,6 +40,18 @@ def _load_crossover_runners(
         connection.close()
 
 
+@st.cache_data(show_spinner=False)
+def _total_finishers(db_path: str) -> int:
+    """Count every stored finisher, opening and closing its own connection."""
+    connection = sqlite3.connect(db_path)
+    try:
+        return connection.execute(
+            "SELECT COUNT(*) FROM race_results"
+        ).fetchone()[0]
+    finally:
+        connection.close()
+
+
 class FinishersOfBothDistancesPage:
     """The Finishers of Both Distances page — runners with both 100M and 100K.
 
@@ -56,7 +69,7 @@ class FinishersOfBothDistancesPage:
             page_icon="🏃",
             layout="wide",
         )
-        st.title("Finishers of Both Distances")
+        st.title("Vermont 100 Finishers of Both Distances")
         st.subheader("Runners who've finished both the 100M and the 100K")
         st.markdown(
             "This page lists every runner who has finished at least one "
@@ -115,8 +128,14 @@ class FinishersOfBothDistancesPage:
             )
 
         st.divider()
+        total = _total_finishers(str(self.db_path))
+        last_updated = datetime.datetime.fromtimestamp(
+            self.db_path.stat().st_mtime
+        ).strftime("%B %d, %Y")
         st.caption(
-            "Data source: [DUV](https://statistik.d-u-v.org)."
+            f"Data source: [DUV](https://statistik.d-u-v.org). "
+            f"Database last updated {last_updated}. "
+            f"{total:,} finishers across all editions."
         )
 
 

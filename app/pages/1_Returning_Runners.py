@@ -74,7 +74,7 @@ class ReturningRunnersPage:
             page_icon="🏃",
             layout="wide",
         )
-        st.title("Returning Runners")
+        st.title("Vermont 100 Returning Runners")
 
         if not self.db_path.exists():
             st.error(
