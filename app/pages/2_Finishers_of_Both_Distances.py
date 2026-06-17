@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import sqlite3
 from pathlib import Path
 
@@ -12,6 +13,43 @@ from vt100_data_hub.formatting import DisplayFormatters
 from vt100_data_hub.queries import RunnerQueries
 
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "vt100.db"
+
+
+@st.cache_data(show_spinner=False)
+def _load_crossover_runners(
+    db_path: str,
+) -> list[tuple[str, int, int, str, str, int]]:
+    """Load runners who finished both distances, cached and self-closing.
+
+    Opens its own connection and closes it in a finally block, so no SQLite
+    connection is leaked across Streamlit reruns.
+
+    Args:
+        db_path: Path to the SQLite database, as a string (cache key).
+
+    Returns:
+        The query's per-runner crossover rows.
+    """
+    connection = sqlite3.connect(db_path)
+    try:
+        queries = RunnerQueries(
+            connection=connection, registry=DUVEventRegistry()
+        )
+        return queries.runners_who_did_both_distances()
+    finally:
+        connection.close()
+
+
+@st.cache_data(show_spinner=False)
+def _total_finishers(db_path: str) -> int:
+    """Count every stored finisher, opening and closing its own connection."""
+    connection = sqlite3.connect(db_path)
+    try:
+        return connection.execute(
+            "SELECT COUNT(*) FROM race_results"
+        ).fetchone()[0]
+    finally:
+        connection.close()
 
 
 class FinishersOfBothDistancesPage:
@@ -26,7 +64,12 @@ class FinishersOfBothDistancesPage:
 
     def render(self) -> None:
         """Render the Finishers of Both Distances page."""
-        st.title("Finishers of Both Distances")
+        st.set_page_config(
+            page_title="Vermont 100 Data Hub",
+            page_icon="🏃",
+            layout="wide",
+        )
+        st.title("Vermont 100 Finishers of Both Distances")
         st.subheader("Runners who've finished both the 100M and the 100K")
         st.markdown(
             "This page lists every runner who has finished at least one "
@@ -35,16 +78,20 @@ class FinishersOfBothDistancesPage:
             "2020, 2021, and 2023 are excluded)."
         )
 
-        connection = sqlite3.connect(self.db_path)
-        queries = RunnerQueries(
-            connection=connection, registry=DUVEventRegistry()
-        )
-        results = queries.runners_who_did_both_distances()
+        if not self.db_path.exists():
+            st.error(
+                "The results database is missing, so runner data can't be "
+                "loaded right now. If this was just deployed, make sure "
+                "`data/vt100.db` is included in the repository."
+            )
+            return
+
+        results = _load_crossover_runners(str(self.db_path))
 
         formatter = DisplayFormatters()
 
         if not results:
-            st.info("No cross-distance runners found.")
+            st.info("No crossover runners found.")
         else:
             st.markdown(
                 f"**{len(results)} runners have finished both distances**"
@@ -81,8 +128,14 @@ class FinishersOfBothDistancesPage:
             )
 
         st.divider()
+        total = _total_finishers(str(self.db_path))
+        last_updated = datetime.datetime.fromtimestamp(
+            self.db_path.stat().st_mtime
+        ).strftime("%B %d, %Y")
         st.caption(
-            "Data source: [DUV](https://statistik.d-u-v.org)."
+            f"Data source: [DUV](https://statistik.d-u-v.org). "
+            f"Database last updated {last_updated}. "
+            f"{total:,} finishers across all editions."
         )
 
 
