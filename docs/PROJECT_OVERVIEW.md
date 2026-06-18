@@ -15,24 +15,37 @@ how fast do I actually have to move between aid stations?"*
 
 ### How it works, in one idea
 
-> **The plan is built backward from the cutoffs, so you never miss one by
-> default.**
+The two distances are paced differently, because their cutoffs are different
+animals. The tool picks the right model for each.
 
-Each aid station's target arrival is its real cutoff clock scaled by your goal,
-and the finish line is the endpoint you cross at your goal time. So a generous
-section is run easier and a tight one harder, and at the slowest goal (30 hours,
-the race limit) you arrive right at every cutoff and finish at exactly 30 hours.
+**100 mile: pace backward from the cutoffs.** Each aid station's target arrival
+is its real cutoff clock scaled by your goal, and the finish line is the endpoint
+you cross at your goal time. A generous section is run easier and a tight one
+harder, and at the slowest goal (30 hours, the race limit) you arrive right at
+every cutoff and finish at exactly 30 hours. This works because the 100 mile
+cutoffs genuinely bind: in ten years of results, 180 finishers came in during
+the final hour before the 30 hour limit.
+
+**100K: run one even effort.** The 100K shares its aid stations, and their
+closing times, with the 100 mile sweep schedule, but starts five hours later. So
+its early cutoffs are wildly loose (the first gives 8.5 hours to cover 7 miles).
+Pacing to those cutoffs produced a nonsensical opening crawl. And the cutoffs do
+not actually bind the 100K: no finisher in ten years (the slowest at 22.6 hours)
+has come within two hours of the 25 hour limit. So the 100K instead holds one
+steady pace to your goal and shows the cutoffs as the comfortable backdrop they
+really are.
 
 You turn two knobs:
 
-- **The goal slider** — your target finish (about 15 to 30 hours). Faster runs
-  every leg quicker and gives more cushion; the slowest setting rides the
-  cutoffs. It changes only your running pace, not your stops.
-- **Aid-station time** — minutes at each stop (default 5 everywhere, editable
+- **The goal slider** is your target finish. The 100 mile spans about 15 to 30
+  hours and defaults to 28; the 100K spans about 10 to 22 hours (the range people
+  actually finish in) and defaults to 17, close to the 15.4 hour median finisher.
+  It changes only your running pace, not your stops.
+- **Aid-station time** is minutes at each stop (default 5 everywhere, editable
   per station). The first 5 minutes at each stop are built into the pace, so the
-  default plan stays ahead of every cutoff. Spend *more* than that and it adds to
-  your finish and eats your cushion (too much shows a red miss); spend *less* and
-  you gain cushion. A table edit only shifts that station and the ones after it.
+  default plan stays on goal. Spend *more* than that and it adds to your finish
+  and eats your cushion; spend *less* and you gain cushion. A table edit only
+  shifts that station and the ones after it.
 
 ### What the runner sees
 
@@ -41,12 +54,12 @@ You turn two knobs:
   *[station]*."
 - A **line graph** of the plan against the cutoffs, with red/yellow/green
   cushion dots.
-- A **table** of every aid station — cutoff, arrival, your stop, departure, and
-  a **color-shaded buffer** (🔴 under 30 min, 🟡 30–60 min, 🟢 over 1 hour) that
-  matches the graph.
+- A **table** of every aid station, with cutoff, arrival, your stop, departure,
+  and a **color-shaded buffer** (🔴 miss, 🟡 under 30 min, 🟢 30 min or more)
+  that matches the graph.
 
-The default goal is **28 hours**, not the 30-hour cutoff — a deliberate choice
-so runners aim for a cushion rather than the edge.
+Each distance defaults to a goal with built-in cushion rather than the edge: 28
+hours on the 100 mile (not the 30 hour cutoff) and 17 hours on the 100K.
 
 ### Why this beats a generic pace calculator
 
@@ -112,13 +125,14 @@ Sources: [UltraPacer](https://ultrapacer.com/) ·
 
 ## What's tested
 
-161 automated tests cover the parser, storage, the 4-of-8 and both-distances
+168 automated tests cover the parser, storage, the 4-of-8 and both-distances
 queries (including the same-name/name-change accuracy cases), the cutoff loader,
-the cutoff-anchored pace math (never-miss at the baseline across the whole goal
-range, additive extra-stop misses, forward-only stop edits), the make-it/miss-it
-verdict, and the live page itself (slider, average, reset, both distances)
-driven through Streamlit's test harness. The DUV event IDs have a separate
-verification script.
+the cutoff-anchored pace math for the 100 mile (never-miss at the baseline across
+the whole goal range, additive extra-stop misses, forward-only stop edits), the
+even-effort pace math for the 100K (one pace per leg, finish on goal, additive
+forward-only stops, faster goal grows every buffer), the make-it/miss-it verdict,
+and the live page itself (slider, average, reset, both distances) driven through
+Streamlit's test harness. The DUV event IDs have a separate verification script.
 
 ---
 

@@ -42,7 +42,7 @@ its data with no extra setup.
 ## Run the tests
 
 ```bash
-uv run pytest          # 148 tests
+uv run pytest          # 168 tests
 uv run ruff check .    # lint
 ```
 

@@ -1,4 +1,4 @@
-"""Vermont 100 Data Hub — Pace Planner page."""
+"""Vermont 100 Data Hub: the Responsible Pace Chart page."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ NOMINAL_AID_MINUTES = 5.0
 
 
 class PacePlannerPage:
-    """The Pace Planner page — interactive pacing against real VT100 cutoffs.
+    """The Responsible Pace Chart: interactive pacing against real VT100 cutoffs.
 
     Attributes:
         cutoffs_100m_path: Path to the 100M cutoffs CSV.
@@ -132,7 +132,7 @@ class PacePlannerPage:
                 st.markdown(
                     "**The 100K runs one even pace.** Its aid-station cutoffs are "
                     "set by the 100-mile sweep schedule, so they are far too loose "
-                    "to pace against — no recent 100K finisher has come within two "
+                    "to pace against. No recent 100K finisher has come within two "
                     "hours of them. Instead of chasing cutoffs, this plan holds a "
                     "steady effort to your goal and shows how far ahead of every "
                     "cutoff you stay.\n\n"
@@ -340,8 +340,8 @@ class PacePlannerPage:
         start_time: time,
         formatter: DisplayFormatters,
     ) -> None:
-        """Render the finish-time headline, the make-it/miss-it verdict, and the
-        start / running-pace / finish line.
+        """Render the results header: the finish/pace/cushion metrics, the
+        make-it or miss-it verdict in plain words, and a single supporting line.
 
         Args:
             plan: The computed pace plan.
@@ -352,34 +352,54 @@ class PacePlannerPage:
         total_aid_minutes = sum(row.aid_minutes for row in plan.rows)
         finish_minutes = finish_row.target_arrival_minutes_from_start
         running_minutes = finish_minutes - total_aid_minutes
-        st.markdown(
-            "<div style='text-align:center; line-height:1.45;'>"
-            f"<div style='font-size:2.2rem; font-weight:700; color:#1565C0;'>"
-            f"{formatter.format_duration(finish_minutes)}"
-            f"</div>"
-            f"<div style='font-size:0.8rem; color:#555; margin-top:-0.2rem;'>"
-            f"finish time</div>"
-            f"<div style='font-size:1.05rem;'>"
-            f"{formatter.format_duration(running_minutes)} running + "
-            f"{formatter.format_duration(total_aid_minutes)} at aid stations</div>"
-            "</div>",
-            unsafe_allow_html=True,
-        )
         verdict = plan.verdict()
+        is_even = plan.pacing_mode == "even"
+        finish_clock = formatter.format_clock_time_with_day(
+            finish_row.target_arrival_time,
+            finish_minutes,
+            start_time.hour,
+            start_time.minute,
+        )
+
+        finish_col, pace_col, cushion_col = st.columns(3)
+        finish_col.metric(
+            "Finish time",
+            formatter.format_duration(finish_minutes),
+            help=f"You cross the line by {finish_clock}.",
+        )
+        pace_col.metric(
+            "Even pace" if is_even else "Average pace",
+            formatter.format_pace(plan.pace_per_mile_minutes),
+            help=(
+                "One steady pace the whole way."
+                if is_even
+                else "Your legs vary; this is the average across the course."
+            ),
+        )
         if verdict.makes_it:
             tight = verdict.tightest_row
+            cushion_col.metric(
+                "Room at tightest cutoff",
+                formatter.format_duration(tight.buffer_minutes),
+                help=f"At {tight.station_name}, mile {tight.mile}.",
+            )
             st.success(
-                f"✅ **You make it.** This plan clears every cutoff. Tightest "
-                f"is **{tight.station_name}** (mile {tight.mile}), "
+                f"✅ You clear every cutoff. The closest call is "
+                f"**{tight.station_name}** at mile {tight.mile}, with "
                 f"{formatter.format_duration(tight.buffer_minutes)} to spare."
             )
         else:
             missed = verdict.first_missed_row
+            cushion_col.metric(
+                "Behind at first miss",
+                formatter.format_duration(missed.buffer_minutes),
+                help=f"At {missed.station_name}, mile {missed.mile}.",
+            )
             st.error(
-                f"⛔ **This plan misses the cutoff at {missed.station_name}** "
+                f"⛔ This plan misses the cutoff at **{missed.station_name}** "
                 f"(mile {missed.mile}) by "
                 f"{formatter.format_duration(-missed.buffer_minutes)}. "
-                f"Run faster or trim stops."
+                f"Run faster or trim your stops."
             )
         leave_late = [
             row
@@ -389,21 +409,29 @@ class PacePlannerPage:
             < row.departure_minutes_from_start
         ]
         if leave_late:
-            names = ", ".join(f"{row.station_name} (mile {row.mile})" for row in leave_late)
+            names = ", ".join(
+                f"{row.station_name} (mile {row.mile})" for row in leave_late
+            )
             st.warning(
-                f"⏳ You arrive in time but would **leave after closing** at: "
+                f"⏳ You arrive in time but would **leave after closing** at "
                 f"{names}. Keep these stops short so you are not pulled."
             )
-        st.markdown(
-            f"**Start:** {formatter.format_clock_time(start_time)} &nbsp;|&nbsp; "
-            f"**Running pace:** {formatter.format_pace(plan.pace_per_mile_minutes)} &nbsp;|&nbsp; "
-            f"**Expected finish:** {formatter.format_clock_time(finish_row.target_arrival_time)}"
+        breakdown = (
+            f"Start {formatter.format_clock_time(start_time)}. "
+            f"{formatter.format_duration(running_minutes)} running plus "
+            f"{formatter.format_duration(total_aid_minutes)} at aid stations."
         )
-        st.caption(
-            "Make or miss is based on **arriving** before each cutoff. This pace "
-            "is the floor; most finishers bank time in the first half and slow "
-            "later."
-        )
+        if is_even:
+            st.caption(
+                f"{breakdown} A steady even effort to your goal; many runners go "
+                "out a little quicker and ease back over the final miles."
+            )
+        else:
+            st.caption(
+                f"{breakdown} Make or miss is based on **arriving** before each "
+                "cutoff. This pace is the floor; most finishers bank time early "
+                "and slow later."
+            )
 
     def _build_table_rows(
         self,
@@ -774,11 +802,9 @@ class PacePlannerPage:
         )
         st.plotly_chart(figure, width="stretch", config={"scrollZoom": True})
         st.caption(
-            "Each station has two dots: an open dot when you arrive and a "
-            "colored dot when you leave. The step between them is your time "
-            "there. The dot's color is your cushion: red means you miss it, "
-            "yellow under 30 min to spare, green 30 min or more. Drag a box to "
-            "zoom, and double click to reset."
+            "Each station has two dots: open when you arrive, filled when you "
+            "leave, and the step between them is your time there. Drag a box to "
+            "zoom, double click to reset."
         )
 
 
