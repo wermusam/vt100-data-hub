@@ -4,11 +4,11 @@ A small web app for the [Vermont 100 Endurance Race](https://vermont100.com/),
 built for the race director and for runners planning their day. It has two
 tools:
 
-- **Responsible Pace Chart** — set a goal finish time and your time at each aid
+- **Responsible Pace Chart.** Set a goal finish time and your time at each aid
   station, and see whether you clear every cutoff, how fast you have to run
   between stations, and how much cushion you have. Built on the race's real 2026
   cutoffs and aid-station codes (drop bags, handler access).
-- **Returning Runners** and **Finishers of Both Distances** — answer the race
+- **Returning Runners** and **Finishers of Both Distances.** Answer the race
   director's eligibility questions, like "who has finished at least 4 of the
   last 8 editions held?", grouped reliably by each runner's DUV ID.
 
