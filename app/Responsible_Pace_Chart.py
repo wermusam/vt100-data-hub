@@ -422,7 +422,7 @@ class PacePlannerPage:
             missed = verdict.first_missed_row
             cushion_col.metric(
                 "Behind at first miss",
-                formatter.format_duration(missed.buffer_minutes),
+                formatter.format_duration(-missed.buffer_minutes),
                 help=f"At {missed.station_name}, mile {missed.mile}.",
             )
             st.error(
