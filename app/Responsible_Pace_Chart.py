@@ -278,6 +278,7 @@ class PacePlannerPage:
                 "Buffer",
             ],
             column_config={
+                "Aid Station": st.column_config.TextColumn(pinned=True),
                 "Mile": st.column_config.NumberColumn(format="%.1f"),
                 "Your Pace": st.column_config.TextColumn(
                     help=(
