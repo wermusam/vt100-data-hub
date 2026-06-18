@@ -89,8 +89,8 @@ class CutoffSchedule:
 
         Keeps every aid station and the finish line, while dropping the trailing
         legend/footer rows the sheet uses to explain the type codes. A row counts
-        as a station if it has a station number, or — like the 100K finish line,
-        which carries no number — a name and a numeric mileage.
+        as a station if it has a station number, or, like the 100K finish line,
+        which carries no number, a name and a numeric mileage.
         """
         with open(csv_path, newline="", encoding="utf-8") as f:
             rows = list(csv.reader(f))

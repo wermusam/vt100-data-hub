@@ -47,7 +47,7 @@ class RunnerQueries:
             tuples, sorted by finish_count desc, then latest_year desc, then
             name. years_string is a comma-separated list of every year the
             runner finished (e.g., "2015,2016,2018").
-            Runners without a DUV runner ID are excluded — we cannot reliably
+            Runners without a DUV runner ID are excluded, we cannot reliably
             group them across years without a stable identifier.
         """
         years = [
@@ -77,7 +77,7 @@ class RunnerQueries:
     ) -> list[tuple[str, int, int, str, str, int]]:
         """Return runners who have finished both 100M and 100K editions.
 
-        Counts every edition we have data for — not bounded by a window.
+        Counts every edition we have data for, not bounded by a window.
         A "crossover" runner is one who has at least one finish in each
         distance.
 

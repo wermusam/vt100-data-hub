@@ -77,7 +77,7 @@ class TestPacePlan:
         assert abs(first.your_section_pace_min_per_mile - expected_pace) < 0.01
 
     def test_your_section_pace_scales_with_goal(self) -> None:
-        """At 24hr goal, section pace = 30hr-pace × (24/30) — proportionally faster."""
+        """At 24hr goal, section pace = 30hr-pace × (24/30), proportionally faster."""
         plan_30 = self._make_plan(goal_hours=30.0)
         plan_24 = self._make_plan(goal_hours=24.0)
         first_30 = plan_30.rows[0]
@@ -141,7 +141,7 @@ class TestPacePlan:
 
     def test_section_paces_are_not_uniform(self) -> None:
         """The plan paces each section to its own cutoff window, so the
-        required pace changes station to station — it is not one flat pace
+        required pace changes station to station, it is not one flat pace
         for the whole race ('you go from pace to pace')."""
         plan = self._make_plan(goal_hours=30.0)
         paces = [
@@ -508,7 +508,7 @@ class TestEvenEffortModel:
         )
 
     def test_every_leg_runs_at_the_same_pace(self) -> None:
-        """Even effort means one pace for every leg — the loose first cutoff no
+        """Even effort means one pace for every leg, the loose first cutoff no
         longer dictates an absurd opening crawl."""
         plan = self._plan(17.0)
         paces = [
@@ -535,7 +535,7 @@ class TestEvenEffortModel:
 
     def test_default_plan_clears_every_cutoff_with_room(self) -> None:
         """At the 17h default the plan clears every cutoff, and even the tightest
-        buffer is hours, not minutes — the cutoffs never bind on the 100K."""
+        buffer is hours, not minutes, the cutoffs never bind on the 100K."""
         plan = self._plan(17.0)
         assert plan.verdict().makes_it is True
         assert min(row.buffer_minutes for row in plan.rows) > 6 * 60

@@ -160,7 +160,7 @@ class TestGroupingByDuvIdNotName:
 
     def test_same_name_different_ids_stay_separate_runners(self) -> None:
         """Two different people both named 'Smith, John' (IDs 5001 and 5002),
-        each with 4 finishes, must show up as two separate qualifiers — not one
+        each with 4 finishes, must show up as two separate qualifiers, not one
         merged runner with 8. Grouping by name would wrongly collapse them."""
         results: list[RaceResult] = []
         for year in [2015, 2016, 2017, 2018]:
@@ -192,7 +192,7 @@ class TestGroupingByDuvIdNotName:
 
     def test_name_change_under_one_id_stays_one_runner(self) -> None:
         """One runner (ID 6001) whose printed name changes across years is still
-        a single qualifier with all four finishes — not two split records."""
+        a single qualifier with all four finishes, not two split records."""
         results: list[RaceResult] = []
         for year, name in [
             (2015, "Maiden, Jane"),
@@ -226,7 +226,7 @@ class TestRunnersWhoDidBoth:
     - Bo (DUV 2002): 2 100M finishes + 1 100K finish (crossover, total 3)
     - Cleo (DUV 2003): 2 100K finishes only (single distance)
     - Dax (DUV 2004): 5 100M finishes + 3 100K finishes (crossover, total 8)
-    - Ghost (no DUV): 1 100M + 1 100K (crossover but no ID — excluded)
+    - Ghost (no DUV): 1 100M + 1 100K (crossover but no ID, excluded)
     """
 
     def _make_queries_with_data(self) -> RunnerQueries:
@@ -347,7 +347,7 @@ class TestRunnersWhoDidBoth:
         assert dax_index < bo_index
 
     def test_excludes_runners_without_duv_id(self) -> None:
-        """Ghost has both distances but no DUV ID — should not appear."""
+        """Ghost has both distances but no DUV ID, should not appear."""
         queries = self._make_queries_with_data()
         results = queries.runners_who_did_both_distances()
         names = [row[0] for row in results]

@@ -75,7 +75,7 @@ class TestCutoffSchedule100K:
         assert last.mileage == 62.2
 
     def test_finish_is_25_hours_from_9am_start(self) -> None:
-        """The 100K finish (10 AM Sunday) is 1500 minutes — 25h — from 9 AM."""
+        """The 100K finish (10 AM Sunday) is 1500 minutes, 25h, from 9 AM."""
         schedule = self._load_2026_100k()
         minutes = schedule.cutoff_minutes_from_start(time(9, 0))
         assert minutes[-1] == 1500

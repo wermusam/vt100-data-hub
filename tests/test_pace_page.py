@@ -89,7 +89,7 @@ class TestPacePlannerPage:
 
     def test_thirty_hour_floor_arrives_early_and_leaves_on_time(self) -> None:
         """At the 30h floor with 5-min stops you arrive 5 min before every cutoff
-        and leave right at it — so you make it, the arrival caption shows, and
+        and leave right at it, so you make it, the arrival caption shows, and
         there is NO leave-after-closing warning."""
         app = self._fresh_app()
         app.select_slider[0].set_value("30h 00m").run()

@@ -13,7 +13,9 @@ tools:
   last 8 editions held?", grouped reliably by each runner's DUV ID.
 
 For a fuller tour of how it works, the pacing method, and how it compares to
-other tools, see [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md).
+other tools, see [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md). To
+check the cutoff numbers against the official schedule, see
+[`docs/CUTOFF_VERIFICATION.md`](docs/CUTOFF_VERIFICATION.md).
 
 ## Run it locally
 
@@ -60,5 +62,5 @@ docs/                 Project overview
 ## Data source
 
 Results come from [DUV](https://statistik.d-u-v.org), the public ultramarathon
-statistics archive, covering Vermont 100 editions 2015–2025. Cancelled years
+statistics archive, covering Vermont 100 editions 2015 to 2025. Cancelled years
 (2020, 2021, 2023) are excluded.

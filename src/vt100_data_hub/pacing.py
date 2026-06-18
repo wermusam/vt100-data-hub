@@ -71,7 +71,7 @@ class PaceVerdict:
     """A plain-language verdict on whether a plan beats every cutoff.
 
     This is the one-glance answer a runner (or the race director) wants:
-    does this plan make it, where is it tightest, and — if it fails — where
+    does this plan make it, where is it tightest, and, if it fails, where
     does the day end. It is intentionally small so more fields can be added
     when the race director asks for more.
 
@@ -79,7 +79,7 @@ class PaceVerdict:
         makes_it: True when every station's buffer is non-negative, i.e. the
             runner departs each aid station on or before its cutoff. A zero
             buffer still counts as making it.
-        tightest_row: The StationPaceRow with the smallest buffer — the closest
+        tightest_row: The StationPaceRow with the smallest buffer, the closest
             call. Shown even on a passing plan so the squeeze is visible.
         first_missed_row: The earliest StationPaceRow with a negative buffer,
             or None when the plan clears every cutoff. This is where a failing
@@ -123,7 +123,7 @@ class PacePlan:
             below this pulls arrivals in.
         arrival_margin_minutes: How many minutes before each intermediate cutoff
             the floor plan aims to arrive (default 0.0). The finish line gets no
-            margin — it is the endpoint you cross at the goal.
+            margin, it is the endpoint you cross at the goal.
         pacing_mode: "cutoff" (default) builds arrivals backward from the cutoffs
             and is used for the 100M, whose cutoffs genuinely bind. "even" runs
             one steady pace forward from the start and is used for the 100K,
@@ -232,7 +232,7 @@ class PacePlan:
         ):
             # Aim a fixed margin before every intermediate cutoff so the floor
             # plan arrives early and leaves on time. The finish line is the
-            # endpoint (no margin) — you cross it at the goal.
+            # endpoint (no margin), you cross it at the goal.
             margin = 0.0 if index == last_index else self.arrival_margin_minutes
             arrival_minutes = (
                 (cutoff_minutes_from_start - margin) * scale + extra_aid_before
@@ -307,8 +307,8 @@ class PacePlan:
         Arrivals are built forward from the start at a single running pace (the
         goal less the baseline stops, over the distance), so each leg is run at
         the same pace and a baseline-stop plan finishes exactly at the goal. The
-        cutoffs are not used to pace the legs — they are only compared against,
-        as a buffer — because the 100K's early cutoffs are far too loose to pace
+        cutoffs are not used to pace the legs, they are only compared against,
+        as a buffer, because the 100K's early cutoffs are far too loose to pace
         to. Time beyond the baseline stop is additive: it shifts this station and
         the ones after it later, and leaves the earlier ones untouched.
         """
@@ -410,7 +410,7 @@ class PacePlan:
 
         Raises:
             ValueError: If the stops meet or exceed the goal, leaving no time
-                to actually run — an impossible plan.
+                to actually run, an impossible plan.
         """
         running_minutes = goal_minutes - sum(stop_minutes)
         if running_minutes <= 0:

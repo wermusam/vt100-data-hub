@@ -1,6 +1,6 @@
 """Save real DUV event pages as test fixtures.
 
-Tests should not hit DUV directly — that's slow, rude, and flaky.
+Tests should not hit DUV directly, that's slow, rude, and flaky.
 Instead, this script saves real DUV HTML pages to tests/fixtures/
 once, so tests can read from disk for fast, reproducible runs.
 

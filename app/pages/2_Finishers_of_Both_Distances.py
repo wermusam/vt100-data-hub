@@ -1,8 +1,7 @@
-"""Vermont 100 Data Hub — Finishers of Both Distances page."""
+"""Vermont 100 Data Hub, Finishers of Both Distances page."""
 
 from __future__ import annotations
 
-import datetime
 import sqlite3
 from pathlib import Path
 
@@ -52,8 +51,24 @@ def _total_finishers(db_path: str) -> int:
         connection.close()
 
 
+@st.cache_data(show_spinner=False)
+def _latest_edition_year(db_path: str) -> int:
+    """Return the most recent race year in the data.
+
+    This is what dates the data honestly: the newest edition we hold results
+    for, rather than a file timestamp that just reflects the last deploy.
+    """
+    connection = sqlite3.connect(db_path)
+    try:
+        return connection.execute(
+            "SELECT MAX(year) FROM race_results"
+        ).fetchone()[0]
+    finally:
+        connection.close()
+
+
 class FinishersOfBothDistancesPage:
-    """The Finishers of Both Distances page — runners with both 100M and 100K.
+    """The Finishers of Both Distances page, runners with both 100M and 100K.
 
     Attributes:
         db_path: Path to the SQLite database with race_results.
@@ -129,12 +144,10 @@ class FinishersOfBothDistancesPage:
 
         st.divider()
         total = _total_finishers(str(self.db_path))
-        last_updated = datetime.datetime.fromtimestamp(
-            self.db_path.stat().st_mtime
-        ).strftime("%B %d, %Y")
+        latest_year = _latest_edition_year(str(self.db_path))
         st.caption(
             f"Data source: [DUV](https://statistik.d-u-v.org). "
-            f"Database last updated {last_updated}. "
+            f"Results through the {latest_year} edition. "
             f"{total:,} finishers across all editions."
         )
 

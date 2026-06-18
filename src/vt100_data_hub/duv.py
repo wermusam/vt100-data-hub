@@ -110,7 +110,7 @@ class DUVParser:
     def parse_first_finisher(self, html: str, year: int, distance: Distance) -> RaceResult:
         """Parse just the rank-1 finisher row from a DUV event page.
 
-        This is the smallest possible parser entry point — it confirms
+        This is the smallest possible parser entry point, it confirms
         we can locate the results table and extract one runner's fields
         before extending to all finishers.
 

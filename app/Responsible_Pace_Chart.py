@@ -421,16 +421,22 @@ class PacePlannerPage:
             f"{formatter.format_duration(running_minutes)} running plus "
             f"{formatter.format_duration(total_aid_minutes)} at aid stations."
         )
+        disclaimer = (
+            " This is a planning estimate, not a guarantee: weather, terrain, "
+            "and how your day unfolds will move these times."
+        )
         if is_even:
             st.caption(
                 f"{breakdown} A steady even effort to your goal; many runners go "
                 "out a little quicker and ease back over the final miles."
+                f"{disclaimer}"
             )
         else:
             st.caption(
                 f"{breakdown} Make or miss is based on **arriving** before each "
                 "cutoff. This pace is the floor; most finishers bank time early "
                 "and slow later."
+                f"{disclaimer}"
             )
 
     def _build_table_rows(
