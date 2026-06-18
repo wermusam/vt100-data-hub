@@ -242,12 +242,46 @@ class PacePlannerPage:
             "**Aid station plan.** Edit **Time at Station** for any stop "
             "(🎒 = drop bag). A longer stop shifts the stations after it."
         )
-        st.button(
-            "Reset to defaults",
-            on_click=self._reset_to_defaults,
-            args=(distance, station_count, default_label),
-            help="Put the goal, the average, and every stop back to the start.",
-        )
+        control_cols = st.columns([1, 1])
+        with control_cols[0]:
+            st.button(
+                "Reset to defaults",
+                on_click=self._reset_to_defaults,
+                args=(distance, station_count, default_label),
+                help="Put the goal, the average, and every stop back to the start.",
+            )
+        with control_cols[1]:
+            show_all_columns = st.checkbox(
+                "Show all columns",
+                value=False,
+                help=(
+                    "Add the planning columns (cutoff close, your pace, time "
+                    "window). Off keeps the table compact for phones."
+                ),
+            )
+
+        # Compact by default so the table fits a phone; the planning columns are
+        # opt-in. The station name is pinned so it stays visible when scrolling.
+        essential_columns = [
+            "Aid Station",
+            "Mile",
+            "Arrival",
+            "Time at Station (min)",
+            "Departure",
+            "Buffer",
+        ]
+        all_columns = [
+            "Aid Station",
+            "Mile",
+            "Cutoff Close",
+            "Arrival",
+            "Your Pace",
+            "Time Window",
+            "Time at Station (min)",
+            "Departure",
+            "Buffer",
+        ]
+        column_order = all_columns if show_all_columns else essential_columns
 
         table_data = self._build_table_rows(
             plan, schedule, start_hour, start_minute, formatter
@@ -256,17 +290,7 @@ class PacePlannerPage:
             table_data,
             hide_index=True,
             width="stretch",
-            column_order=[
-                "Aid Station",
-                "Mile",
-                "Cutoff Close",
-                "Arrival",
-                "Your Pace",
-                "Time Window",
-                "Time at Station (min)",
-                "Departure",
-                "Buffer",
-            ],
+            column_order=column_order,
             disabled=[
                 "Aid Station",
                 "Mile",
@@ -802,7 +826,7 @@ class PacePlannerPage:
                 "gridcolor": "rgba(0,0,0,0.18)",
                 "dtick": 5,
             },
-            height=440,
+            height=400,
             dragmode="zoom",
             legend={"groupclick": "toggleitem"},
             margin={"t": 80},
