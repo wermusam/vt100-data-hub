@@ -13,6 +13,9 @@ from vt100_data_hub.pacing import PacePlan
 CUTOFFS_2026_100M_PATH = (
     Path(__file__).parent.parent / "data" / "cutoffs_2026_100m.csv"
 )
+CUTOFFS_2026_100K_PATH = (
+    Path(__file__).parent.parent / "data" / "cutoffs_2026_100k.csv"
+)
 
 
 class TestPacePlan:
@@ -480,3 +483,117 @@ class TestCutoffAnchoredModel:
                 base_row.your_section_pace_min_per_mile
                 == edited_row.your_section_pace_min_per_mile
             )
+
+
+class TestEvenEffortModel:
+    """The 100K model: one steady pace forward from the start, with the cutoffs
+    only compared to, not paced to. The 100K's early cutoffs are far too loose
+    to pace against, so every leg runs at the same pace, the finish lands on the
+    goal, and a stop adds to the finish in full."""
+
+    def _plan(self, goal_hours: float, stop_minutes: float = 5.0) -> PacePlan:
+        """Build a 2026 100K even-effort plan with a uniform stop time."""
+        schedule = CutoffSchedule(
+            csv_path=CUTOFFS_2026_100K_PATH, distance="100K"
+        )
+        n = len(schedule.stations)
+        stops = PacePlan.stop_minutes_with_no_finish_stop([stop_minutes] * n)
+        return PacePlan(
+            schedule=schedule,
+            goal_hours=goal_hours,
+            start_time=time(9, 0),
+            aid_minutes_per_station=stops,
+            nominal_aid_minutes=5.0,
+            pacing_mode="even",
+        )
+
+    def test_every_leg_runs_at_the_same_pace(self) -> None:
+        """Even effort means one pace for every leg — the loose first cutoff no
+        longer dictates an absurd opening crawl."""
+        plan = self._plan(17.0)
+        paces = [
+            round(row.your_section_pace_min_per_mile, 4)
+            for row in plan.rows
+            if row.section_distance_miles > 0
+        ]
+        assert len(set(paces)) == 1
+
+    def test_even_pace_is_running_over_distance(self) -> None:
+        """The single pace is the goal less every stop, spread over the course."""
+        plan = self._plan(17.0, stop_minutes=5.0)
+        n = len(plan.schedule.stations)
+        running = 17.0 * 60.0 - 5.0 * (n - 1)
+        expected = running / plan.race_distance_miles
+        assert abs(plan.pace_per_mile_minutes - expected) < 1e-9
+        first = plan.rows[0]
+        assert abs(first.your_section_pace_min_per_mile - expected) < 1e-9
+
+    def test_finish_lands_exactly_on_the_goal(self) -> None:
+        """A 17h goal finishes at exactly 17h (1020 minutes), stops included."""
+        plan = self._plan(17.0)
+        assert abs(plan.rows[-1].target_arrival_minutes_from_start - 1020.0) < 1e-9
+
+    def test_default_plan_clears_every_cutoff_with_room(self) -> None:
+        """At the 17h default the plan clears every cutoff, and even the tightest
+        buffer is hours, not minutes — the cutoffs never bind on the 100K."""
+        plan = self._plan(17.0)
+        assert plan.verdict().makes_it is True
+        assert min(row.buffer_minutes for row in plan.rows) > 6 * 60
+
+    def test_a_stop_adds_to_the_finish_in_full(self) -> None:
+        """Unlike the 100M's absorbed baseline, a 100K stop adds to the finish in
+        full: a 20-min stop over a 5-min default pushes the finish 15 min later."""
+        base = self._plan(17.0, stop_minutes=5.0)
+        schedule = CutoffSchedule(
+            csv_path=CUTOFFS_2026_100K_PATH, distance="100K"
+        )
+        n = len(schedule.stations)
+        stops = PacePlan.stop_minutes_with_no_finish_stop([5.0] * n)
+        stops[3] = 20.0
+        edited = PacePlan(
+            schedule=schedule,
+            goal_hours=17.0,
+            start_time=time(9, 0),
+            aid_minutes_per_station=stops,
+            nominal_aid_minutes=5.0,
+            pacing_mode="even",
+        )
+        assert (
+            edited.rows[-1].target_arrival_minutes_from_start
+            == base.rows[-1].target_arrival_minutes_from_start + 15.0
+        )
+
+    def test_a_stop_shifts_only_the_stations_after_it(self) -> None:
+        """A longer stop leaves earlier arrivals untouched and shifts the later
+        ones by exactly the added minutes."""
+        base = self._plan(17.0, stop_minutes=5.0)
+        schedule = CutoffSchedule(
+            csv_path=CUTOFFS_2026_100K_PATH, distance="100K"
+        )
+        n = len(schedule.stations)
+        stops = PacePlan.stop_minutes_with_no_finish_stop([5.0] * n)
+        stops[3] = 25.0  # 20 minutes over the default
+        edited = PacePlan(
+            schedule=schedule,
+            goal_hours=17.0,
+            start_time=time(9, 0),
+            aid_minutes_per_station=stops,
+            nominal_aid_minutes=5.0,
+            pacing_mode="even",
+        )
+        assert (
+            edited.rows[2].target_arrival_minutes_from_start
+            == base.rows[2].target_arrival_minutes_from_start
+        )
+        assert (
+            edited.rows[6].target_arrival_minutes_from_start
+            == base.rows[6].target_arrival_minutes_from_start + 20.0
+        )
+
+    def test_faster_goal_grows_every_buffer(self) -> None:
+        """A faster goal reaches every station earlier, so every cutoff buffer
+        grows."""
+        slow = self._plan(20.0)
+        fast = self._plan(14.0)
+        for slow_row, fast_row in zip(slow.rows, fast.rows):
+            assert fast_row.buffer_minutes >= slow_row.buffer_minutes

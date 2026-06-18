@@ -64,27 +64,9 @@ class PacePlannerPage:
         st.title("Vermont 100 Responsible Pace Chart")
         st.markdown(
             "Set your goal finish time and your time at each aid station. "
-            "The table shows your arrival, departure, and the cushion you'd "
-            "have against every 2026 cutoff."
+            "The table shows your arrival, departure, and how you stand "
+            "against every 2026 cutoff."
         )
-        with st.expander("How this works"):
-            st.markdown(
-                "**Goal finish time:** your target finish. A faster goal runs "
-                "every leg quicker and gives more cushion; the slowest setting "
-                "rides the cutoffs. It changes only your running pace, not your "
-                "stops.\n\n"
-                "**Aid station time:** the first 5 minutes at each stop are built "
-                "into the pace, so the default plan stays ahead of every cutoff. "
-                "Spend more than that and it adds to your finish and eats your "
-                "cushion (too much shows a red miss); spend less and you gain "
-                "cushion. A table edit affects that stop and the ones after it, "
-                "never before.\n\n"
-                "**The verdict** at the top says, in plain words, whether you "
-                "clear every cutoff and where it is tightest.\n\n"
-                "**Colors:** red means you miss that cutoff, yellow means you "
-                "make it but with under 30 minutes to spare, green means 30 "
-                "minutes or more. The table and the graph use the same colors."
-            )
 
         formatter = DisplayFormatters()
 
@@ -114,29 +96,85 @@ class PacePlannerPage:
         )
         schedule = CutoffSchedule(csv_path=csv_path, distance=distance)
 
-        # The goal slider is your target finish at the baseline stop. Its
-        # slowest setting is this race's cutoff; faster settings run every leg
-        # quicker and give more cushion. It steps every minute.
+        # The 100M is paced backward from its cutoffs (which genuinely bind); the
+        # 100K runs one even effort, since its early cutoffs are far too loose to
+        # pace against. The 100K slider spans the range people actually finish in
+        # (about 10 to 22 hours), not the meaningless 25h cutoff.
+        pacing_mode = "cutoff" if distance == "100M" else "even"
         total_cutoff_minutes = schedule.cutoff_minutes_from_start(start_time)[-1]
-        min_minutes = 15 * 60 if distance == "100M" else 10 * 60
-        default_label = "28h 00m" if distance == "100M" else "23h 00m"
+        if distance == "100M":
+            min_minutes, max_minutes = 15 * 60, total_cutoff_minutes
+            default_label = "28h 00m"
+        else:
+            min_minutes, max_minutes = 10 * 60, 22 * 60
+            default_label = "17h 00m"
+
+        with st.expander("How this works"):
+            if pacing_mode == "cutoff":
+                st.markdown(
+                    "**Goal finish time:** your target finish. A faster goal runs "
+                    "every leg quicker and gives more cushion; the slowest setting "
+                    "rides the cutoffs. It changes only your running pace, not your "
+                    "stops.\n\n"
+                    "**Aid station time:** the first 5 minutes at each stop are "
+                    "built into the pace, so the default plan stays ahead of every "
+                    "cutoff. Spend more than that and it adds to your finish and "
+                    "eats your cushion (too much shows a red miss); spend less and "
+                    "you gain cushion. A table edit affects that stop and the ones "
+                    "after it, never before.\n\n"
+                    "**The verdict** at the top says, in plain words, whether you "
+                    "clear every cutoff and where it is tightest.\n\n"
+                    "**Colors:** red means you miss that cutoff, yellow means you "
+                    "make it but with under 30 minutes to spare, green means 30 "
+                    "minutes or more. The table and the graph use the same colors."
+                )
+            else:
+                st.markdown(
+                    "**The 100K runs one even pace.** Its aid-station cutoffs are "
+                    "set by the 100-mile sweep schedule, so they are far too loose "
+                    "to pace against — no recent 100K finisher has come within two "
+                    "hours of them. Instead of chasing cutoffs, this plan holds a "
+                    "steady effort to your goal and shows how far ahead of every "
+                    "cutoff you stay.\n\n"
+                    "**Goal finish time:** your target finish. A faster goal runs "
+                    "every leg quicker. It changes only your running pace, not your "
+                    "stops.\n\n"
+                    "**Aid station time:** the first 5 minutes at each stop are "
+                    "built into the pace. Spend more than that and it adds to your "
+                    "finish; a table edit affects that stop and the ones after it, "
+                    "never before.\n\n"
+                    "**The verdict** at the top shows your finish and how much room "
+                    "you have at the tightest cutoff.\n\n"
+                    "**Colors:** green means 30 minutes or more of room, yellow "
+                    "under 30, red a miss. On the 100K you should stay green all "
+                    "day."
+                )
+
         goal_options = [
             formatter.format_hours(minutes / 60.0)
-            for minutes in range(min_minutes, total_cutoff_minutes + 1, 1)
+            for minutes in range(min_minutes, max_minutes + 1, 1)
         ]
         goal_key = f"goal_slider_{distance}"
         if goal_key not in st.session_state:
             st.session_state[goal_key] = default_label
-        goal_label = st.select_slider(
-            "Goal finish time",
-            options=goal_options,
-            key=goal_key,
-            help=(
+        if pacing_mode == "cutoff":
+            goal_help = (
                 "Your target finish at the baseline stop. The slowest setting is "
                 f"the {formatter.format_hours(total_cutoff_minutes / 60.0)} cutoff; "
                 "faster settings run every leg quicker for more cushion. It does "
                 "not change your aid-station time."
-            ),
+            )
+        else:
+            goal_help = (
+                "Your target finish. The plan runs one even pace to reach it, and "
+                "shows how far ahead of every cutoff you stay. A faster goal runs "
+                "every leg quicker. It does not change your aid-station time."
+            )
+        goal_label = st.select_slider(
+            "Goal finish time",
+            options=goal_options,
+            key=goal_key,
+            help=goal_help,
         )
         goal_minutes = formatter.parse_hm_label(goal_label) * 60.0
         aid_col, _aid_spacer = st.columns([1, 2])
@@ -155,11 +193,19 @@ class PacePlannerPage:
                     "to the defaults."
                 ),
             )
-        st.caption(
-            f"⏱️ The first {int(NOMINAL_AID_MINUTES)} minutes at each stop are "
-            "built into the pace. Spend **more** at any stop and it eats your "
-            "cushion (too much shows a red miss); spend **less** and you gain it."
-        )
+        if pacing_mode == "cutoff":
+            st.caption(
+                f"⏱️ The first {int(NOMINAL_AID_MINUTES)} minutes at each stop are "
+                "built into the pace. Spend **more** at any stop and it eats your "
+                "cushion (too much shows a red miss); spend **less** and you gain it."
+            )
+        else:
+            st.caption(
+                f"⏱️ The first {int(NOMINAL_AID_MINUTES)} minutes at each stop are "
+                "built into the pace. Spend **more** and it adds to your finish "
+                "and shifts the later stations; the plan holds one even pace and "
+                "stays hours ahead of every cutoff."
+            )
 
         # Per-station aid times live in session state so the table can edit
         # individual stops; the finish line never has a stop. Changing the
@@ -185,6 +231,7 @@ class PacePlannerPage:
             aid_minutes_per_station=stops,
             nominal_aid_minutes=NOMINAL_AID_MINUTES,
             arrival_margin_minutes=NOMINAL_AID_MINUTES,
+            pacing_mode=pacing_mode,
         )
 
         self._render_summary(plan, start_time, formatter)

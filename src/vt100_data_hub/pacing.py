@@ -124,6 +124,13 @@ class PacePlan:
         arrival_margin_minutes: How many minutes before each intermediate cutoff
             the floor plan aims to arrive (default 0.0). The finish line gets no
             margin — it is the endpoint you cross at the goal.
+        pacing_mode: "cutoff" (default) builds arrivals backward from the cutoffs
+            and is used for the 100M, whose cutoffs genuinely bind. "even" runs
+            one steady pace forward from the start and is used for the 100K,
+            whose early cutoffs are far too loose to pace against; there the
+            cutoffs are only compared to, not paced to. Both modes absorb the
+            baseline stop into the pace, so a default plan finishes on the goal
+            and only time beyond the baseline shifts the finish later.
         race_distance_miles: Total race distance (from the last station's mileage).
         pace_per_mile_minutes: Overall running pace (moving only), i.e. the goal
             less the baseline stops, spread over the distance.
@@ -139,6 +146,7 @@ class PacePlan:
         aid_minutes_per_station: list[float] | None = None,
         nominal_aid_minutes: float = 0.0,
         arrival_margin_minutes: float = 0.0,
+        pacing_mode: str = "cutoff",
     ) -> None:
         self.schedule = schedule
         self.goal_hours = goal_hours
@@ -147,14 +155,26 @@ class PacePlan:
         self.aid_station_minutes = aid_station_minutes
         self.aid_minutes_per_station = aid_minutes_per_station
         self.nominal_aid_minutes = nominal_aid_minutes
+        self.pacing_mode = pacing_mode
         self.race_distance_miles = schedule.stations[-1].mileage  # last station = finish line
+        self._aids = self._resolve_aids()
         # Overall running pace is the goal less the baseline stops (which are
-        # absorbed into the legs), spread over the distance.
+        # absorbed into the legs), spread over the distance. Both models share
+        # this: the goal is your finish at the baseline stop, so a default plan
+        # finishes on the goal and time beyond the baseline is additive.
         moving_budget_minutes = goal_hours * 60.0 - nominal_aid_minutes * max(
             len(schedule.stations) - 1, 0
         )
-        self.pace_per_mile_minutes = moving_budget_minutes / self.race_distance_miles
-        self.rows = self._compute_rows()
+        self.pace_per_mile_minutes = (
+            moving_budget_minutes / self.race_distance_miles
+        )
+        # "even" runs that one pace forward from the start (the 100K, whose
+        # cutoffs are too loose to pace to); "cutoff" rides the cutoffs (the
+        # 100M). Both keep stops additive and forward-only.
+        if pacing_mode == "even":
+            self.rows = self._compute_rows_even()
+        else:
+            self.rows = self._compute_rows()
 
     def verdict(self) -> PaceVerdict:
         """Summarize whether this plan clears every Vermont 100 cutoff.
@@ -194,15 +214,7 @@ class PacePlan:
         cutoffs_from_start = self.schedule.cutoff_minutes_from_start(self.start_time)
         total_race_cutoff_minutes = cutoffs_from_start[-1]
 
-        # Per-station aid time: an explicit override list if given, else the
-        # uniform value for every station. No stop at the finish line.
-        station_count = len(self.schedule.stations)
-        if self.aid_minutes_per_station is not None:
-            aids = [float(minutes) for minutes in self.aid_minutes_per_station]
-        else:
-            aids = [self.aid_station_minutes] * station_count
-        if aids:
-            aids[-1] = 0.0
+        aids = self._aids
 
         # Scale the cutoff clock by the goal. At the 30h goal scale is 1.0 (you
         # ride the cutoffs); a faster goal pulls every arrival earlier.
@@ -268,6 +280,90 @@ class PacePlan:
             prev_cutoff_minutes = cutoff_minutes_from_start
             prev_departure_minutes = departure_minutes
             extra_aid_before += aid_minutes - self.nominal_aid_minutes
+
+        return rows
+
+    def _resolve_aids(self) -> list[float]:
+        """Per-station stop minutes for this plan, with the finish line zeroed.
+
+        Uses the explicit override list when given, otherwise the uniform
+        per-station value. The last station (the finish) never has a stop.
+
+        Returns:
+            One stop time per station, in course order.
+        """
+        station_count = len(self.schedule.stations)
+        if self.aid_minutes_per_station is not None:
+            aids = [float(minutes) for minutes in self.aid_minutes_per_station]
+        else:
+            aids = [self.aid_station_minutes] * station_count
+        if aids:
+            aids[-1] = 0.0
+        return aids
+
+    def _compute_rows_even(self) -> list[StationPaceRow]:
+        """Build the pace plan rows at one even effort (the 100K model).
+
+        Arrivals are built forward from the start at a single running pace (the
+        goal less the baseline stops, over the distance), so each leg is run at
+        the same pace and a baseline-stop plan finishes exactly at the goal. The
+        cutoffs are not used to pace the legs — they are only compared against,
+        as a buffer — because the 100K's early cutoffs are far too loose to pace
+        to. Time beyond the baseline stop is additive: it shifts this station and
+        the ones after it later, and leaves the earlier ones untouched.
+        """
+        start_minutes_of_day = self.start_time.hour * 60 + self.start_time.minute
+        cutoffs_from_start = self.schedule.cutoff_minutes_from_start(self.start_time)
+        aids = self._aids
+        pace = self.pace_per_mile_minutes
+        rows: list[StationPaceRow] = []
+
+        prev_mile = 0.0
+        prev_cutoff_minutes = 0
+        # Minutes from the start at which the runner leaves the previous point
+        # (the start line itself counts as a departure at time zero).
+        prev_departure_minutes = 0.0
+        for index, (station, cutoff_minutes_from_start) in enumerate(
+            zip(self.schedule.stations, cutoffs_from_start)
+        ):
+            section_distance = station.mileage - prev_mile
+            section_moving_minutes = section_distance * pace
+            arrival_minutes = prev_departure_minutes + section_moving_minutes
+            aid_minutes = aids[index]
+            departure_minutes = arrival_minutes + aid_minutes
+
+            arrival_time = self._minutes_to_time_of_day(
+                start_minutes_of_day + arrival_minutes
+            )
+            departure_time = self._minutes_to_time_of_day(
+                start_minutes_of_day + departure_minutes
+            )
+
+            buffer_minutes = cutoff_minutes_from_start - arrival_minutes
+            cutoff_window_minutes = cutoff_minutes_from_start - prev_cutoff_minutes
+            your_section_pace = pace if section_distance > 0 else 0.0
+
+            rows.append(
+                StationPaceRow(
+                    station_name=station.name,
+                    mile=station.mileage,
+                    section_distance_miles=section_distance,
+                    cutoff_close_time=station.closes_time,
+                    cutoff_minutes_from_start=cutoff_minutes_from_start,
+                    cutoff_window_minutes=cutoff_window_minutes,
+                    target_arrival_time=arrival_time,
+                    target_arrival_minutes_from_start=arrival_minutes,
+                    aid_minutes=aid_minutes,
+                    departure_time=departure_time,
+                    departure_minutes_from_start=departure_minutes,
+                    buffer_minutes=buffer_minutes,
+                    your_section_pace_min_per_mile=your_section_pace,
+                )
+            )
+
+            prev_mile = station.mileage
+            prev_cutoff_minutes = cutoff_minutes_from_start
+            prev_departure_minutes = departure_minutes
 
         return rows
 

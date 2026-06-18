@@ -112,11 +112,12 @@ class TestPacePlannerPage:
         assert set(app.session_state["aid_times_100M"][:-1]) == {5.0}
 
     def test_100k_distance_loads_and_clears_at_default(self) -> None:
-        """Switching to the 100K loads cleanly at its 23h default and makes it."""
+        """Switching to the 100K loads cleanly at its 17h default and clears
+        every cutoff with hours to spare (even-effort model)."""
         app = self._fresh_app()
         app.radio[0].set_value("100K").run()
         assert not app.exception
-        assert app.select_slider[0].value == "23h 00m"
+        assert app.select_slider[0].value == "17h 00m"
         assert app.success and not app.error
 
     def test_100k_average_change_keeps_its_goal(self) -> None:
@@ -125,4 +126,4 @@ class TestPacePlannerPage:
         app.radio[0].set_value("100K").run()
         app.number_input[0].set_value(8.0).run()
         assert not app.exception
-        assert app.select_slider[0].value == "23h 00m"
+        assert app.select_slider[0].value == "17h 00m"
