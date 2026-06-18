@@ -339,6 +339,11 @@ class PacePlannerPage:
         )
 
         st.divider()
+        st.caption(
+            "Cutoffs and aid stations from the Vermont 100 2026 schedule "
+            "(vermont100.com). This is a planning tool, not an official race "
+            "document."
+        )
 
     def _reset_to_defaults(
         self, distance: str, station_count: int, default_label: str
