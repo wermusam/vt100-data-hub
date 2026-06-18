@@ -286,6 +286,17 @@ class PacePlannerPage:
         table_data = self._build_table_rows(
             plan, schedule, start_hour, start_minute, formatter
         )
+        if pacing_mode == "cutoff":
+            pace_help = (
+                "The slowest pace for this leg that still gets you to the next "
+                "cutoff on time. It changes leg to leg because the cutoffs are "
+                "spaced unevenly."
+            )
+        else:
+            pace_help = (
+                "One steady pace the whole way: your goal, less your stops, "
+                "spread evenly over the course."
+            )
         edited = st.data_editor(
             table_data,
             hide_index=True,
@@ -304,13 +315,7 @@ class PacePlannerPage:
             column_config={
                 "Aid Station": st.column_config.TextColumn(pinned=True),
                 "Mile": st.column_config.NumberColumn(format="%.1f"),
-                "Your Pace": st.column_config.TextColumn(
-                    help=(
-                        "The slowest pace for this leg that still gets you to "
-                        "the next cutoff on time. It changes leg to leg because "
-                        "the cutoffs are spaced unevenly."
-                    ),
-                ),
+                "Your Pace": st.column_config.TextColumn(help=pace_help),
                 "Time at Station (min)": st.column_config.NumberColumn(
                     min_value=0, step=1
                 ),
