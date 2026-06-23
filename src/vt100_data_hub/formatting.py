@@ -119,6 +119,28 @@ class DisplayFormatters:
         hours, mins = divmod(total, 60)
         return f"{sign}{hours}h {mins:02d}m"
 
+    def format_buffer(self, minutes: float) -> str:
+        """Format a cutoff buffer for display, without a minus sign.
+
+        A made cutoff shows its cushion as a plain duration ('0h 45m'). A missed
+        cutoff shows how far past the cutoff you are, worded instead of signed
+        ('0h 12m late'), since a red dot already marks it as a miss and a bare
+        negative number reads as confusing.
+
+        Args:
+            minutes: Buffer in minutes (cutoff close minus arrival). Negative
+                means the plan arrives after the cutoff.
+
+        Returns:
+            'Xh YYm' when on time, or 'Xh YYm late' when past the cutoff.
+        """
+        rounded = round(minutes)
+        if rounded < 0:
+            return f"{self.format_duration(-minutes)} late"
+        # Use the rounded value so a tiny negative (which rounds to zero) shows
+        # a clean '0h 00m', never a '-0h 00m'.
+        return self.format_duration(rounded)
+
     def format_hours(self, hours: float) -> str:
         """Format decimal hours as 'Xh YYm'.
 

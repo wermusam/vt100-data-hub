@@ -131,6 +131,30 @@ class TestFormatDuration:
         assert formatter.format_duration(0) == "0h 00m"
 
 
+class TestFormatBuffer:
+    """Tests for DisplayFormatters.format_buffer (no minus signs)."""
+
+    def test_positive_buffer_is_a_plain_duration(self) -> None:
+        """A made cutoff shows its cushion as a plain duration."""
+        formatter = DisplayFormatters()
+        assert formatter.format_buffer(45) == "0h 45m"
+
+    def test_negative_buffer_reads_as_late_not_negative(self) -> None:
+        """A missed cutoff is worded, not signed."""
+        formatter = DisplayFormatters()
+        assert formatter.format_buffer(-12) == "0h 12m late"
+
+    def test_zero_buffer_is_on_time(self) -> None:
+        """Exactly on the cutoff is not late."""
+        formatter = DisplayFormatters()
+        assert formatter.format_buffer(0) == "0h 00m"
+
+    def test_near_zero_negative_has_no_minus(self) -> None:
+        """A buffer that rounds to zero never shows a negative zero."""
+        formatter = DisplayFormatters()
+        assert "-" not in formatter.format_buffer(-0.3)
+
+
 class TestFormatHours:
     """Tests for DisplayFormatters.format_hours."""
 

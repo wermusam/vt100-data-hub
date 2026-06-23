@@ -538,7 +538,7 @@ class PacePlannerPage:
                 ),
                 "Buffer": (
                     f"{buffer_dots[formatter.buffer_category(row.buffer_minutes)]} "
-                    f"{formatter.format_duration(row.buffer_minutes)}"
+                    f"{formatter.format_buffer(row.buffer_minutes)}"
                 ),
             }
             for row, station in zip(plan.rows, schedule.stations)
@@ -601,7 +601,7 @@ class PacePlannerPage:
                     start_hour,
                     start_minute,
                 ),
-                formatter.format_duration(row.buffer_minutes),
+                formatter.format_buffer(row.buffer_minutes),
                 formatter.buffer_category(row.buffer_minutes),
             ]
             lines.append(",".join(f'"{cell}"' for cell in cells))
@@ -660,7 +660,7 @@ class PacePlannerPage:
             )
             for row in plan.rows
         ]
-        buffers = [formatter.format_duration(row.buffer_minutes) for row in plan.rows]
+        buffers = [formatter.format_buffer(row.buffer_minutes) for row in plan.rows]
         cushions = [
             formatter.buffer_category(row.buffer_minutes) for row in plan.rows
         ]
