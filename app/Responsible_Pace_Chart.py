@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
+import sys
 from datetime import time
 from pathlib import Path
+
+# Import the package from the repo source, not a copy the deploy host cached.
+# On Streamlit Community Cloud the app scripts are re-read from git on every
+# push, but the installed package can lag behind, which crashes the app when the
+# script calls a function the stale package does not have yet. Putting src/
+# first guarantees the app and its package always come from the same commit.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 # Imported for its side effect: pandas must be fully initialized before
 # Plotly's lazy pandas check runs while rendering the chart, or Plotly 6 with
@@ -195,13 +203,13 @@ class PacePlannerPage:
             )
         if pacing_mode == "cutoff":
             st.caption(
-                f"⏱️ The first {int(NOMINAL_AID_MINUTES)} minutes at each stop are "
+                f"The first {int(NOMINAL_AID_MINUTES)} minutes at each stop are "
                 "built into the pace. Spend **more** at any stop and it eats your "
                 "cushion (too much shows a red miss); spend **less** and you gain it."
             )
         else:
             st.caption(
-                f"⏱️ The first {int(NOMINAL_AID_MINUTES)} minutes at each stop are "
+                f"The first {int(NOMINAL_AID_MINUTES)} minutes at each stop are "
                 "built into the pace. Spend **more** and it adds to your finish "
                 "and shifts the later stations; the plan holds one even pace and "
                 "stays hours ahead of every cutoff."
@@ -419,7 +427,7 @@ class PacePlannerPage:
                 help=f"At {tight.station_name}, mile {tight.mile}.",
             )
             st.success(
-                f"✅ You clear every cutoff. The closest call is "
+                f"You clear every cutoff. The closest call is "
                 f"**{tight.station_name}** at mile {tight.mile}, with "
                 f"{formatter.format_duration(tight.buffer_minutes)} to spare."
             )
@@ -431,7 +439,7 @@ class PacePlannerPage:
                 help=f"At {missed.station_name}, mile {missed.mile}.",
             )
             st.error(
-                f"⛔ This plan misses the cutoff at **{missed.station_name}** "
+                f"This plan misses the cutoff at **{missed.station_name}** "
                 f"(mile {missed.mile}) by "
                 f"{formatter.format_duration(-missed.buffer_minutes)}. "
                 f"Run faster or trim your stops."
@@ -448,7 +456,7 @@ class PacePlannerPage:
                 f"{row.station_name} (mile {row.mile})" for row in leave_late
             )
             st.warning(
-                f"⏳ You arrive in time but would **leave after closing** at "
+                f"You arrive in time but would **leave after closing** at "
                 f"{names}. Keep these stops short so you are not pulled."
             )
         breakdown = (

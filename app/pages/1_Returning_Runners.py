@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
+
+# Import the package from the repo source, not a copy the deploy host cached,
+# so the app and its package always come from the same commit (see the pace
+# chart page for the full reason).
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
 
 import streamlit as st
 
