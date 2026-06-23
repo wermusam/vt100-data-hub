@@ -805,7 +805,7 @@ class PacePlannerPage:
         figure.add_annotation(
             x=tightest.mile,
             y=round(tightest.departure_minutes_from_start / 60.0, 2),
-            text=f"Tightest: {formatter.format_duration(tightest.buffer_minutes)}",
+            text=f"Tightest: {formatter.format_buffer(tightest.buffer_minutes)}",
             showarrow=True,
             arrowhead=2,
             arrowcolor="#C62828",
