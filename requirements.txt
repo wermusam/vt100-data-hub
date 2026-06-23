@@ -4,6 +4,9 @@
 # `from vt100_data_hub import ...` lines resolve; it also pulls the runtime
 # dependencies declared in pyproject.toml. They are listed again below so the
 # deploy still works even if the editable install is skipped.
+#
+# Package rev: 0.1.1 (bump this to force the host to reinstall the package
+# instead of reusing a cached, stale copy).
 -e .
 streamlit>=1.40.0
 plotly>=5.24.0

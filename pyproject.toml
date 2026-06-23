@@ -1,6 +1,6 @@
 [project]
 name = "vt100-data-hub"
-version = "0.1.0"
+version = "0.1.1"
 description = "Tools for the Vermont 100 Endurance Race: results aggregation, runner history, and an interactive pace chart planner."
 readme = "README.md"
 requires-python = ">=3.12"
