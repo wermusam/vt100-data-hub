@@ -170,13 +170,23 @@ class ReturningRunnersPage:
                 }
                 for name, count, latest_year, years_string in results
             ]
-            st.dataframe(table_data, hide_index=True, width="stretch")
+            st.dataframe(
+                table_data,
+                hide_index=True,
+                width="stretch",
+                column_config={
+                    "Runner": st.column_config.TextColumn(pinned=True),
+                },
+            )
 
             csv_lines = ["Runner,Finishes,Latest Year,Years"]
             for name, count, latest_year, years_string in results:
                 formatted_name = formatter.format_name(name)
+                # Semicolons, not commas, between years: Excel reads a comma list
+                # of years as one giant number and shows it as ####.
+                years_cell = years_string.replace(",", "; ")
                 csv_lines.append(
-                    f'"{formatted_name}",{count},{latest_year},"{years_string}"'
+                    f'"{formatted_name}",{count},{latest_year},"{years_cell}"'
                 )
             st.download_button(
                 label="Download CSV",

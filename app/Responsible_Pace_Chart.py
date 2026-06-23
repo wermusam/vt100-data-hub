@@ -828,7 +828,7 @@ class PacePlannerPage:
                 "title": "Mile",
                 "showgrid": True,
                 "gridcolor": "rgba(0,0,0,0.18)",
-                "dtick": 5,
+                "dtick": 10,
             },
             yaxis={
                 "title": "Hours elapsed since race start",
@@ -836,10 +836,20 @@ class PacePlannerPage:
                 "gridcolor": "rgba(0,0,0,0.18)",
                 "dtick": 5,
             },
-            height=400,
+            height=480,
             dragmode="zoom",
-            legend={"groupclick": "toggleitem"},
-            margin={"t": 80},
+            # Legend below the plot (not beside it) so the chart keeps full width
+            # on a phone, where a side legend squeezed it to a sliver.
+            legend={
+                "orientation": "h",
+                "yanchor": "top",
+                "y": -0.22,
+                "xanchor": "center",
+                "x": 0.5,
+                "groupclick": "toggleitem",
+                "font": {"size": 11},
+            },
+            margin={"t": 70, "b": 130},
         )
         st.plotly_chart(figure, width="stretch", config={"scrollZoom": True})
         st.caption(

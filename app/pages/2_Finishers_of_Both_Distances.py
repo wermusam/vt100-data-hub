@@ -123,7 +123,14 @@ class FinishersOfBothDistancesPage:
                 }
                 for name, m_count, k_count, years_m, years_k, latest_year in results
             ]
-            st.dataframe(table_data, hide_index=True, width="stretch")
+            st.dataframe(
+                table_data,
+                hide_index=True,
+                width="stretch",
+                column_config={
+                    "Runner": st.column_config.TextColumn(pinned=True),
+                },
+            )
 
             csv_lines = [
                 "Runner,100M Finishes,100K Finishes,Total Finishes,"
@@ -131,9 +138,14 @@ class FinishersOfBothDistancesPage:
             ]
             for name, m_count, k_count, years_m, years_k, latest_year in results:
                 formatted_name = formatter.format_name(name)
+                # Semicolons, not commas, between years: Excel reads a comma list
+                # of years as one giant number and shows it as ####.
+                years_m_cell = years_m.replace(",", "; ")
+                years_k_cell = years_k.replace(",", "; ")
                 csv_lines.append(
                     f'"{formatted_name}",{m_count},{k_count},'
-                    f'{m_count + k_count},"{years_m}","{years_k}",{latest_year}'
+                    f'{m_count + k_count},"{years_m_cell}","{years_k_cell}",'
+                    f'{latest_year}'
                 )
             st.download_button(
                 label="Download CSV",
