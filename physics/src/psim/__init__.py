@@ -12,8 +12,9 @@ methods on physics problems of increasing complexity:
 The centerpiece is the Parker–Sochacki method (PSM) — the power-series /
 modified-Picard integrator developed by G. Edgar Parker and James Sochacki
 at James Madison University — benchmarked against classical explicit
-(Euler, RK2, RK4, RKF45), implicit (backward Euler, implicit midpoint,
-trapezoidal), and symplectic (semi-implicit Euler, velocity Verlet)
+(Euler, RK2, RK4, RKF45), implicit one-step (backward Euler, implicit
+midpoint, trapezoidal), implicit multistep (BDF2), structural-dynamics
+(generalized-α), and symplectic (semi-implicit Euler, velocity Verlet)
 integrators.
 
 Subpackages

@@ -9,15 +9,19 @@ from __future__ import annotations
 from psim.integrators.base import INTEGRATORS, Integrator, register_integrator, simulate
 from psim.integrators.explicit import RKF45, ExplicitEuler, ExplicitMidpoint, RungeKutta4
 from psim.integrators.implicit import BackwardEuler, ImplicitMidpoint, Trapezoidal
+from psim.integrators.multistep import BDF2
 from psim.integrators.parker_sochacki import ParkerSochacki
+from psim.integrators.structural import GeneralizedAlpha
 from psim.integrators.symplectic import SymplecticEuler, VelocityVerlet
 
 __all__ = [
+    "BDF2",
     "INTEGRATORS",
     "RKF45",
     "BackwardEuler",
     "ExplicitEuler",
     "ExplicitMidpoint",
+    "GeneralizedAlpha",
     "ImplicitMidpoint",
     "Integrator",
     "ParkerSochacki",

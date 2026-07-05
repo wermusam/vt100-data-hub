@@ -7,10 +7,11 @@ in the JMU Mathematics department, which makes this a fitting home project for
 a Duke.
 
 The package compares PSM against explicit (Euler, RK2, RK4, adaptive RKF45),
-implicit (backward Euler, implicit midpoint, trapezoidal), and symplectic
-(semi-implicit Euler, velocity Verlet) integrators on a ladder of systems from
-"hello world" ODEs up to particle media, and ships a Dash app to explore every
-result interactively.
+implicit one-step (backward Euler, implicit midpoint, trapezoidal), implicit
+multistep (BDF2), structural-dynamics (generalized-alpha with a tunable
+high-frequency dissipation parameter), and symplectic (semi-implicit Euler,
+velocity Verlet) integrators on a ladder of systems from "hello world" ODEs up
+to particle media, and ships a Dash app to explore every result interactively.
 
 ## Quickstart
 
@@ -102,6 +103,24 @@ boundary dt ~ 1/sqrt(k) for every explicit method, PSM included: raising the
 order widens the stable region only by a constant factor. The implicit family
 is stable everywhere in the map and limited only by accuracy. The damping
 sweep shows the same divide as c grows through overdamped (stiff) territory.
+
+Within the implicit family the suite now separates three damping behaviors,
+which is its own parameter-flexibility axis:
+
+* **Trapezoidal** has no numerical damping at all: on an unresolved stiff
+  transient its iterates ring (amplification factor near -1) with amplitude
+  stuck near 1.
+* **BDF2** is L-stable: same second order, but it annihilates the unresolved
+  transient within a few steps, which is why production stiff solvers build
+  on it.
+* **Generalized-alpha** makes the damping a dial. Its spectral radius
+  parameter rho_inf in [0, 1] selects how hard *unresolvable* high-frequency
+  modes are damped while the resolved band keeps second-order accuracy:
+  at dt = 0.05 it annihilates a k = 1e4 oscillation (period 0.063) to below
+  1e-3 of its energy in the same run where a resolved pendulum swing keeps
+  its energy to a few permille. That frequency-selective dissipation is
+  exactly what stiff chains, hard contacts, and noisy SPH pressure fields
+  want, and no other family in the suite offers it.
 This is PSM's clearest non-novelty: **it is an explicit method with an
 explicit method's stiffness limits.** The series sees the fast transient and
 its native step control shrinks h to resolve it, even when the transient is

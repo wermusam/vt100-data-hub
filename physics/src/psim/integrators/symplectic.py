@@ -42,6 +42,7 @@ class SymplecticEuler(Integrator):
     """
 
     order = 1
+    requires_separable = True
 
     def step(self, system: ODESystem, t: float, y: FloatArray, dt: float) -> StepResult:
         q, v = _split(system, y)
@@ -63,6 +64,7 @@ class VelocityVerlet(Integrator):
     """
 
     order = 2
+    requires_separable = True
 
     def step(self, system: ODESystem, t: float, y: FloatArray, dt: float) -> StepResult:
         q, v = _split(system, y)

@@ -27,10 +27,12 @@ from psim.core.decorators import memoized
 from psim.experiments import metrics
 from psim.experiments.runner import MethodSpec, applicable, run_sweep
 from psim.integrators import (
+    BDF2,
     RKF45,
     BackwardEuler,
     ExplicitEuler,
     ExplicitMidpoint,
+    GeneralizedAlpha,
     ImplicitMidpoint,
     ParkerSochacki,
     RungeKutta4,
@@ -64,6 +66,13 @@ def fixed_step_methods(psm_order: int = 12) -> list[MethodSpec]:
         MethodSpec("Backward Euler", lambda v: BackwardEuler(), "dt", "implicit"),
         MethodSpec("Implicit midpoint", lambda v: ImplicitMidpoint(), "dt", "implicit"),
         MethodSpec("Trapezoidal", lambda v: Trapezoidal(), "dt", "implicit"),
+        MethodSpec("BDF2", lambda v: BDF2(), "dt", "implicit"),
+        MethodSpec(
+            "Generalized-alpha (rho 0.9)",
+            lambda v: GeneralizedAlpha(rho_inf=0.9),
+            "dt",
+            "structural",
+        ),
         MethodSpec("Symplectic Euler", lambda v: SymplecticEuler(), "dt", "symplectic"),
         MethodSpec("Velocity Verlet", lambda v: VelocityVerlet(), "dt", "symplectic"),
         MethodSpec(

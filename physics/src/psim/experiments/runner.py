@@ -56,10 +56,10 @@ def applicable(spec: MethodSpec, system: ODESystem) -> bool:
     polynomial lifting. Everything else applies universally.
     """
     probe = spec.build(1e-2)
-    if probe.__class__.__name__ in ("SymplecticEuler", "VelocityVerlet"):
-        return isinstance(system, SeparableSystem)
-    if probe.__class__.__name__ == "ParkerSochacki":
-        return isinstance(system, PolynomialODE)
+    if probe.requires_separable and not isinstance(system, SeparableSystem):
+        return False
+    if probe.requires_polynomial and not isinstance(system, PolynomialODE):
+        return False
     return True
 
 

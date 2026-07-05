@@ -48,11 +48,18 @@ class Integrator(abc.ABC):
     order:
         Theoretical order of accuracy (global error ~ ``dt**order``);
         used by convergence plots and tests.
+    requires_separable:
+        True for methods that need ``q' = v, v' = a(t, q, v)`` structure
+        (symplectic and structural-dynamics integrators).
+    requires_polynomial:
+        True for methods that need a Parker–Sochacki polynomial lifting.
     """
 
     #: Human-readable registry name, stamped by ``@register_integrator``.
     registry_name: str = ""
     order: int = 1
+    requires_separable: bool = False
+    requires_polynomial: bool = False
 
     @abc.abstractmethod
     def step(self, system: ODESystem, t: float, y: FloatArray, dt: float) -> StepResult:

@@ -95,6 +95,8 @@ class ParkerSochacki(Integrator):
         If the system does not provide a polynomial lifting.
     """
 
+    requires_polynomial = True
+
     def __init__(self, order: int = 16, tol: float | None = None, max_h: float = np.inf) -> None:
         if order < 1:
             raise ValueError("order must be at least 1")

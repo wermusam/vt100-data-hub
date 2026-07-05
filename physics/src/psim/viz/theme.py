@@ -21,12 +21,14 @@ MUTED = "#898781"
 GRID = "#e1e0d9"
 BASELINE = "#c3c2b7"
 
-#: Family → hue (validated categorical set, in fixed order).
+#: Family → hue (validated categorical set, in fixed order:
+#: worst adjacent CVD ΔE 13.3, all ≥ 3:1 on the light surface).
 FAMILY_COLORS = {
     "explicit": "#2a78d6",
     "symplectic": "#008300",
     "implicit": "#e34948",
     "series": "#4a3aa7",
+    "structural": "#eb6834",
 }
 
 #: Method label → (color, dash). Fixed for the life of the app.
@@ -38,6 +40,8 @@ METHOD_STYLES: dict[str, tuple[str, str]] = {
     "Backward Euler": (FAMILY_COLORS["implicit"], "dot"),
     "Implicit midpoint": (FAMILY_COLORS["implicit"], "solid"),
     "Trapezoidal": (FAMILY_COLORS["implicit"], "dash"),
+    "BDF2": (FAMILY_COLORS["implicit"], "longdash"),
+    "Generalized-alpha (rho 0.9)": (FAMILY_COLORS["structural"], "solid"),
     "Symplectic Euler": (FAMILY_COLORS["symplectic"], "dot"),
     "Velocity Verlet": (FAMILY_COLORS["symplectic"], "solid"),
 }
@@ -49,6 +53,8 @@ def method_style(label: str) -> tuple[str, str]:
         return METHOD_STYLES[label]
     if label.startswith("PSM"):
         return (FAMILY_COLORS["series"], "dash" if "adaptive" in label else "solid")
+    if label.startswith("Generalized-alpha"):
+        return (FAMILY_COLORS["structural"], "solid")
     return (MUTED, "solid")
 
 
