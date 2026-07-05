@@ -17,6 +17,10 @@ other tools, see [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md). To
 check the cutoff numbers against the official schedule, see
 [`docs/CUTOFF_VERIFICATION.md`](docs/CUTOFF_VERIFICATION.md).
 
+The repository also hosts a separate research subproject,
+[`physics/`](physics/README.md): a Parker-Sochacki physics simulation lab
+comparing ODE integration methods, with its own package, tests, and Dash app.
+
 ## Run it locally
 
 This project uses [uv](https://docs.astral.sh/uv/).
