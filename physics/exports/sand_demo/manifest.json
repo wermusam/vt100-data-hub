@@ -1,0 +1,19 @@
+{
+  "system": "granular-box",
+  "method": "symplectic-euler",
+  "n_particles": 100,
+  "n_frames": 73,
+  "fps": 48,
+  "time_start": 0.0,
+  "time_end": 1.5,
+  "columns": [
+    "id",
+    "px",
+    "py",
+    "pz",
+    "vx",
+    "vy",
+    "vz"
+  ],
+  "frame_pattern": "frame_%04d.csv"
+}
