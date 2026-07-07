@@ -22,6 +22,7 @@ from psim.systems.kepler import Kepler
 from psim.systems.mass_spring import MassSpringChain
 from psim.systems.particles import BouncingBall, GranularBox2D
 from psim.systems.pendulum import Pendulum
+from psim.systems.rigid_body import FreeRigidBody
 from psim.systems.sph import SPHFluid2D
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "DampedOscillator",
     "EventFunction",
     "ExponentialDecay",
+    "FreeRigidBody",
     "GranularBox2D",
     "Kepler",
     "MassSpringChain",

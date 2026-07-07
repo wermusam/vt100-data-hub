@@ -46,6 +46,12 @@ print(run.y_final, run.rhs_evaluations, run.events)
 | 7 | Bouncing ball | `bouncing-ball` | Collision events; exact impact time |
 | 8 | Granular box | `granular-box` | Soft-sphere DEM sand; piecewise contact forces |
 | 9 | SPH fluid | `sph-fluid` | 2-D weakly compressible dam break |
+| 10 | Free rigid body | `rigid-body` | Quaternion + Euler equations; Dzhanibekov tumbling; identity PSM lifting |
+
+For every equation, integrator update rule, lifting recurrence, and the
+collision math written out for re-implementation, see
+[`docs/METHODS.md`](docs/METHODS.md). For the paper's prior-art position,
+see [`docs/novelty_review.md`](docs/novelty_review.md).
 
 Rungs 1 through 7 have polynomial liftings and run under PSM. Rungs 8 and 9
 deliberately do not: compact-support kernels and contact switching break the
